@@ -29,12 +29,21 @@ python3 build_db.py            # télécharge dans data/ puis construit rncp.sql
 python3 build_db.py --all      # inclut les fiches inactives (défaut : actives seules)
 python3 build_db.py --no-xml   # sans le texte intégral des référentiels
 python3 build_db.py --csv-zip … --xml-zip … --xml-zip …   # mode hors ligne
+python3 build_db.py --taxonomie-dir … / --no-taxonomie    # artefact taxonomie / phase ignorée
 ```
 
-Il n'y a pas de suite de tests. Pour valider une modification de `build_db.py`,
-générer des fixtures synthétiques (mini zips CSV `;` + XML V4.1 imitant les exports)
-et lancer le script dessus en mode hors ligne, puis vérifier le contenu de la base
-par requêtes SQL (filtrage actif, encodages, `fiche_texte`, blocs, FTS).
+Il existe une suite de tests unitaires sous `tests/` (fixtures synthétiques, mode
+hors ligne) :
+
+```bash
+python -m unittest discover -s tests -p "test_*.py" -v
+```
+
+Pour valider une autre modification de `build_db.py` non couverte par ces tests,
+générer des fixtures synthétiques (mini zips CSV `;` + XML V4.1 imitant les exports,
+éventuellement un mini `taxonomie/`) et lancer le script dessus en mode hors ligne,
+puis vérifier le contenu de la base par requêtes SQL (filtrage actif, encodages,
+`fiche_texte`, blocs, FTS, taxonomie).
 
 ## Points d'architecture à connaître
 
@@ -58,6 +67,16 @@ par requêtes SQL (filtrage actif, encodages, `fiche_texte`, blocs, FTS).
   entourée de try/except — certains builds SQLite n'ont pas FTS5.
 - **`meta`** : table de provenance (sources, périmètre, compteurs) écrite en fin de
   construction.
+- **Taxonomie de compétences canoniques** : phase optionnelle qui charge l'artefact
+  versionné `taxonomie/` (`domaines.csv`, `competences_canoniques.csv`,
+  `mapping_blocs.csv`) s'il est présent, et crée `domaine`, `competence_canonique`,
+  `bloc_competence_canonique` ainsi que la vue `certification_competence`. Séparation
+  stricte entre l'**outil taxonomie** (`build_taxonomie.py`, occasionnel, embeddings +
+  LLM, curation humaine, hors périmètre stdlib) qui produit l'artefact, et le
+  **pipeline `build_db.py`** (stdlib, déterministe) qui se contente de le lire et
+  applique un repli lexical stdlib pour les blocs non couverts par le mapping.
+  Artefact absent/incomplet ou `--no-taxonomie` → dégradation gracieuse, comme pour
+  FTS5.
 
 ## Contraintes d'environnement
 
