@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Données France compétences (téléchargées) et base construite
+data/
+*.sqlite3
