@@ -120,6 +120,31 @@ def tokeniser(texte: str) -> set[str]:
     return {t for t in bruts if len(t) >= 3 and t not in MOTS_VIDES}
 
 
+def score_lexical(tokens_a: set[str], tokens_b: set[str]) -> float:
+    """Similarité de Jaccard entre deux ensembles de jetons (0.0 à 1.0)."""
+    if not tokens_a or not tokens_b:
+        return 0.0
+    union = len(tokens_a | tokens_b)
+    return len(tokens_a & tokens_b) / union if union else 0.0
+
+
+def meilleur_match_lexical(
+    texte_bloc: str,
+    competences_tokens: "dict[str, set[str]]",
+    seuil: float,
+) -> "tuple[str | None, float]":
+    """Compétence canonique la plus proche du texte d'un bloc, ou (None, meilleur_score)."""
+    jetons = tokeniser(texte_bloc)
+    meilleur_id, meilleur_score = None, 0.0
+    for cid, ctokens in competences_tokens.items():
+        s = score_lexical(jetons, ctokens)
+        if s > meilleur_score:
+            meilleur_id, meilleur_score = cid, s
+    if meilleur_id is not None and meilleur_score >= seuil:
+        return meilleur_id, meilleur_score
+    return None, meilleur_score
+
+
 def http_get(url: str) -> bytes:
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=120) as resp:
