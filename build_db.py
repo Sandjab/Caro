@@ -46,7 +46,7 @@ RESOURCE_KINDS = {
     "xml_rncp": re.compile(r"export[-_]fiches[-_]rncp", re.I),
     "xml_rs": re.compile(r"export[-_]fiches[-_]rs[-_]", re.I),
 }
-DATE_IN_NAME = re.compile(r"(\d{4}-\d{2}-\d{2})")
+DATE_IN_NAME = re.compile(r"(\d{4}[-_]\d{2}[-_]\d{2})")
 
 # Valeurs signalant une fiche active (CSV : "ACTIVE", XML : "Oui").
 ACTIVE_VALUES = {"oui", "active", "actif", "true", "1"}
