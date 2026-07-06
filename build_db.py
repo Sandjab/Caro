@@ -171,6 +171,13 @@ def charger_taxonomie(taxo_dir: Path) -> "Taxonomie | None":
 
     domaines = _lire_csv_point_virgule(taxo_dir / "domaines.csv")
     competences = _lire_csv_point_virgule(taxo_dir / "competences_canoniques.csv")
+    competences_valides = []
+    for c in competences:
+        if c.get("competence_id"):
+            competences_valides.append(c)
+        else:
+            log("  taxonomie : compétence sans competence_id ignorée")
+    competences = competences_valides
     ids_connus = {c["competence_id"] for c in competences}
 
     mapping: "dict[str, tuple[str, str, float | None]]" = {}
@@ -183,7 +190,11 @@ def charger_taxonomie(taxo_dir: Path) -> "Taxonomie | None":
             log(f"  taxonomie : mapping ignoré (competence inconnue) : {code} -> {cid}")
             continue
         brut = row.get("score", "")
-        score = float(brut) if brut not in (None, "") else None
+        try:
+            score = float(brut) if brut not in (None, "") else None
+        except ValueError:
+            log(f"  taxonomie : score non numérique ignoré pour {code} : {brut!r}")
+            score = None
         mapping[code] = (cid, row.get("methode", "ia") or "ia", score)
 
     meta = {}
@@ -230,7 +241,7 @@ def construire_taxonomie(conn: sqlite3.Connection, taxo: "Taxonomie",
 
     # Jetons précalculés par compétence canonique (pour le repli lexical).
     comp_tokens = {
-        c["competence_id"]: tokeniser((c.get("mots_cles") or "").replace("|", " "))
+        c.get("competence_id"): tokeniser((c.get("mots_cles") or "").replace("|", " "))
         for c in taxo.competences
     }
 

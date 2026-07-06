@@ -2,6 +2,7 @@ import os
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
+import shutil
 import sqlite3
 import subprocess
 import tempfile
@@ -62,51 +63,53 @@ def fabriquer_fixtures(base: Path):
 
 class TestBoutEnBout(unittest.TestCase):
     def test_construction_avec_taxonomie(self):
-        with tempfile.TemporaryDirectory() as d:
-            base = Path(d)
-            csv_zip, xml_zip, taxo = fabriquer_fixtures(base)
-            db = base / "test.sqlite3"
-            r = subprocess.run(
-                [sys.executable, "build_db.py",
-                 "--csv-zip", str(csv_zip), "--xml-zip", str(xml_zip),
-                 "--taxonomie-dir", str(taxo), "--db", str(db)],
-                cwd=RACINE, capture_output=True, text=True,
-                encoding="utf-8", env=ENV_UTF8)
-            self.assertEqual(r.returncode, 0, r.stderr)
-            conn = sqlite3.connect(db)
-            meta = dict(conn.execute("SELECT cle, valeur FROM meta"))
-            self.assertEqual(meta["taxonomie"], "oui")
-            self.assertEqual(meta["nb_competences_canoniques"], "1")
-            self.assertEqual(meta["taxonomie_modele"], "test")
-            methodes = dict(conn.execute(
-                "SELECT bloc_code, methode FROM bloc_competence_canonique"))
-            self.assertEqual(methodes,
-                             {"RNCP0001BC01": "ia", "RNCP0001BC02": "lexical",
-                              "RNCP0001BC03": "non_classe"})
-            vue = conn.execute(
-                "SELECT COUNT(*) FROM certification_competence").fetchone()[0]
-            self.assertEqual(vue, 1)
-            conn.close()
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        base = Path(d)
+        csv_zip, xml_zip, taxo = fabriquer_fixtures(base)
+        db = base / "test.sqlite3"
+        r = subprocess.run(
+            [sys.executable, "build_db.py",
+             "--csv-zip", str(csv_zip), "--xml-zip", str(xml_zip),
+             "--taxonomie-dir", str(taxo), "--db", str(db)],
+            cwd=RACINE, capture_output=True, text=True,
+            encoding="utf-8", env=ENV_UTF8)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        conn = sqlite3.connect(db)
+        self.addCleanup(conn.close)
+        meta = dict(conn.execute("SELECT cle, valeur FROM meta"))
+        self.assertEqual(meta["taxonomie"], "oui")
+        self.assertEqual(meta["nb_competences_canoniques"], "1")
+        self.assertEqual(meta["taxonomie_modele"], "test")
+        methodes = dict(conn.execute(
+            "SELECT bloc_code, methode FROM bloc_competence_canonique"))
+        self.assertEqual(methodes,
+                         {"RNCP0001BC01": "ia", "RNCP0001BC02": "lexical",
+                          "RNCP0001BC03": "non_classe"})
+        vue = conn.execute(
+            "SELECT COUNT(*) FROM certification_competence").fetchone()[0]
+        self.assertEqual(vue, 1)
 
     def test_no_taxonomie(self):
-        with tempfile.TemporaryDirectory() as d:
-            base = Path(d)
-            csv_zip, xml_zip, _ = fabriquer_fixtures(base)
-            db = base / "test.sqlite3"
-            r = subprocess.run(
-                [sys.executable, "build_db.py",
-                 "--csv-zip", str(csv_zip), "--xml-zip", str(xml_zip),
-                 "--no-taxonomie", "--db", str(db)],
-                cwd=RACINE, capture_output=True, text=True,
-                encoding="utf-8", env=ENV_UTF8)
-            self.assertEqual(r.returncode, 0, r.stderr)
-            conn = sqlite3.connect(db)
-            meta = dict(conn.execute("SELECT cle, valeur FROM meta"))
-            self.assertEqual(meta["taxonomie"], "non")
-            tables = {r[0] for r in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type='table'")}
-            self.assertNotIn("competence_canonique", tables)
-            conn.close()
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d, ignore_errors=True)
+        base = Path(d)
+        csv_zip, xml_zip, _ = fabriquer_fixtures(base)
+        db = base / "test.sqlite3"
+        r = subprocess.run(
+            [sys.executable, "build_db.py",
+             "--csv-zip", str(csv_zip), "--xml-zip", str(xml_zip),
+             "--no-taxonomie", "--db", str(db)],
+            cwd=RACINE, capture_output=True, text=True,
+            encoding="utf-8", env=ENV_UTF8)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        conn = sqlite3.connect(db)
+        self.addCleanup(conn.close)
+        meta = dict(conn.execute("SELECT cle, valeur FROM meta"))
+        self.assertEqual(meta["taxonomie"], "non")
+        tables = {r[0] for r in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table'")}
+        self.assertNotIn("competence_canonique", tables)
 
 
 if __name__ == "__main__":
