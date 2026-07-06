@@ -38,6 +38,8 @@ Options :
 python3 build_db.py --all        # inclut aussi les fiches inactives (~20 000 au total)
 python3 build_db.py --no-xml     # base allégée, sans le texte intégral des référentiels
 python3 build_db.py --db ma.db --data-dir /tmp/exports
+python3 build_db.py --taxonomie-dir mon-artefact/   # emplacement de l'artefact taxonomie (défaut : taxonomie/)
+python3 build_db.py --no-taxonomie                  # ignore la phase de taxonomie de compétences
 
 # Avec des zips déjà téléchargés (hors ligne) :
 python3 build_db.py \
@@ -48,6 +50,17 @@ python3 build_db.py \
 
 Pour rafraîchir la base, relancez simplement le script (supprimez le contenu de `data/`
 pour forcer le re-téléchargement des exports du jour).
+
+### Taxonomie de compétences canoniques (optionnelle)
+
+Si un répertoire `taxonomie/` (artefact versionné `domaines.csv`,
+`competences_canoniques.csv`, `mapping_blocs.csv`, `;` en séparateur) est présent à côté
+du script, `build_db.py` l'utilise pour rattacher chaque bloc de compétences réel à une
+« macro-compétence » canonique et enrichir la base en conséquence (voir schéma
+ci-dessous). Cet artefact est produit par un **outil séparé** (`build_taxonomie.py`,
+occasionnel, embeddings + LLM, curation humaine) — `build_db.py` se contente de le lire.
+Si le répertoire est absent ou incomplet (ou avec `--no-taxonomie`), l'étape est
+proprement ignorée et la base se construit comme avant.
 
 ## Schéma de la base
 
@@ -65,6 +78,26 @@ pour forcer le re-téléchargement des exports du jour).
 - **`fiche_fts`** : table virtuelle FTS5 de recherche plein texte sur les intitulés et
   tous les contenus de `fiche_texte`.
 - **`meta`** : provenance, périmètre et statistiques de construction.
+
+Si l'artefact `taxonomie/` a été fourni au build (voir ci-dessus), trois tables et une
+vue supplémentaires apparaissent :
+
+- **`domaine`** `(domaine_id, libelle, description, ordre)` : domaines sur-mesure de
+  regroupement des compétences canoniques.
+- **`competence_canonique`** `(competence_id, domaine_id, libelle, description,
+  mots_cles, nb_blocs)` : macro-compétences canoniques (grain bloc), rattachées à un
+  domaine ; `nb_blocs` est calculé au build.
+- **`bloc_competence_canonique`** `(bloc_code, numero_fiche, competence_id, methode,
+  score)` : rattachement de chaque bloc réel à sa compétence canonique. `methode` vaut
+  `ia` (mapping précalculé par l'outil taxonomie), `lexical` (repli par recouvrement de
+  mots-clés au build) ou `non_classe` (sous le seuil, `competence_id` NULL — aucun
+  rattachement forcé).
+- **`certification_competence`** (vue) `(numero_fiche, competence_id, domaine_id)` :
+  diplôme → compétences canoniques couvertes (les blocs `non_classe` sont exclus).
+
+Les clés `meta` correspondantes : `taxonomie` (oui/non), et si présente `nb_domaines`,
+`nb_competences_canoniques`, `blocs_ia_pct` / `blocs_lexical_pct` / `blocs_non_classe_pct`,
+`taxonomie_version` / `taxonomie_date` / `taxonomie_modele`.
 
 ## Exemples de requêtes
 
@@ -91,4 +124,10 @@ SELECT numero_fiche, champ, snippet(fiche_fts, 2, '[', ']', '…', 12)
 FROM fiche_fts
 WHERE fiche_fts MATCH 'cybersécurité'
 LIMIT 20;
+
+-- Diplômes couvrant une compétence canonique donnée (nécessite l'artefact taxonomie/)
+SELECT DISTINCT s.numero_fiche, s.intitule
+FROM certification_competence cc
+JOIN standard s ON s.numero_fiche = cc.numero_fiche
+WHERE cc.competence_id = 'creer_gerer_site_web';
 ```

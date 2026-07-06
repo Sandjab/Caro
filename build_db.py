@@ -46,7 +46,7 @@ RESOURCE_KINDS = {
     "xml_rncp": re.compile(r"export[-_]fiches[-_]rncp", re.I),
     "xml_rs": re.compile(r"export[-_]fiches[-_]rs[-_]", re.I),
 }
-DATE_IN_NAME = re.compile(r"(\d{4}-\d{2}-\d{2})")
+DATE_IN_NAME = re.compile(r"(\d{4}[-_]\d{2}[-_]\d{2})")
 
 # Valeurs signalant une fiche active (CSV : "ACTIVE", XML : "Oui").
 ACTIVE_VALUES = {"oui", "active", "actif", "true", "1"}
@@ -86,6 +86,9 @@ XML_STRUCTURED_TAGS = {
 # le format V4.x évolue et on préfère capturer trop que pas assez.
 XML_TEXT_FALLBACK_LEN = 300
 
+# Seuil de similarité lexicale en deçà duquel un bloc reste non classé.
+SEUIL_LEXICAL = 0.12
+
 
 def log(msg: str) -> None:
     print(msg, flush=True)
@@ -101,6 +104,202 @@ def slugify(name: str) -> str:
     if text[0].isdigit():
         text = "c_" + text
     return text
+
+
+# Mots vides français fréquents (≥ 3 caractères) écartés de la tokenisation.
+MOTS_VIDES = {
+    "les", "des", "une", "aux", "dans", "pour", "par", "sur", "avec", "ses",
+    "son", "sa", "leur", "leurs", "que", "qui", "aux", "ces", "cette", "est",
+    "ou", "et", "en", "un", "au", "de", "du", "la", "le",
+}
+
+
+def tokeniser(texte: str) -> set[str]:
+    """Découpe un texte en jetons normalisés (minuscule, sans accent, ≥ 3 car.)."""
+    texte = unicodedata.normalize("NFKD", texte)
+    texte = "".join(c for c in texte if not unicodedata.combining(c))
+    texte = texte.lower()
+    bruts = re.split(r"[^a-z0-9]+", texte)
+    return {t for t in bruts if len(t) >= 3 and t not in MOTS_VIDES}
+
+
+def score_lexical(tokens_a: set[str], tokens_b: set[str]) -> float:
+    """Similarité de Jaccard entre deux ensembles de jetons (0.0 à 1.0)."""
+    if not tokens_a or not tokens_b:
+        return 0.0
+    union = len(tokens_a | tokens_b)
+    return len(tokens_a & tokens_b) / union if union else 0.0
+
+
+def meilleur_match_lexical(
+    texte_bloc: str,
+    competences_tokens: "dict[str, set[str]]",
+    seuil: float,
+) -> "tuple[str | None, float]":
+    """Compétence canonique la plus proche du texte d'un bloc, ou (None, meilleur_score)."""
+    jetons = tokeniser(texte_bloc)
+    meilleur_id, meilleur_score = None, 0.0
+    for cid, ctokens in competences_tokens.items():
+        s = score_lexical(jetons, ctokens)
+        if s > meilleur_score:
+            meilleur_id, meilleur_score = cid, s
+    if meilleur_id is not None and meilleur_score >= seuil:
+        return meilleur_id, meilleur_score
+    return None, meilleur_score
+
+
+class Taxonomie:
+    """Artefact de taxonomie chargé depuis taxonomie/*.csv."""
+
+    def __init__(self, domaines, competences, mapping, meta):
+        self.domaines = domaines        # list[dict]
+        self.competences = competences  # list[dict]
+        self.mapping = mapping          # dict[str, tuple[str, str, float | None]]
+        self.meta = meta                # dict[str, str]
+
+
+def _lire_csv_point_virgule(chemin: Path) -> "list[dict]":
+    with open(chemin, encoding="utf-8-sig", newline="") as fh:
+        return list(csv.DictReader(fh, delimiter=";"))
+
+
+def charger_taxonomie(taxo_dir: Path) -> "Taxonomie | None":
+    """Charge l'artefact de taxonomie. Renvoie None si absent/incomplet."""
+    requis = ["domaines.csv", "competences_canoniques.csv", "mapping_blocs.csv"]
+    if not taxo_dir.is_dir() or any(not (taxo_dir / f).exists() for f in requis):
+        return None
+
+    domaines = _lire_csv_point_virgule(taxo_dir / "domaines.csv")
+    competences = _lire_csv_point_virgule(taxo_dir / "competences_canoniques.csv")
+    competences_valides = []
+    for c in competences:
+        if c.get("competence_id"):
+            competences_valides.append(c)
+        else:
+            log("  taxonomie : compétence sans competence_id ignorée")
+    competences = competences_valides
+    ids_connus = {c["competence_id"] for c in competences}
+
+    mapping: "dict[str, tuple[str, str, float | None]]" = {}
+    for row in _lire_csv_point_virgule(taxo_dir / "mapping_blocs.csv"):
+        cid = row.get("competence_id", "")
+        code = row.get("bloc_code", "")
+        if not code:
+            continue
+        if cid not in ids_connus:
+            log(f"  taxonomie : mapping ignoré (competence inconnue) : {code} -> {cid}")
+            continue
+        brut = row.get("score", "")
+        try:
+            score = float(brut) if brut not in (None, "") else None
+        except ValueError:
+            log(f"  taxonomie : score non numérique ignoré pour {code} : {brut!r}")
+            score = None
+        mapping[code] = (cid, row.get("methode", "ia") or "ia", score)
+
+    meta = {}
+    meta_path = taxo_dir / "meta.json"
+    if meta_path.exists():
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except (ValueError, OSError) as exc:
+            log(f"  taxonomie : meta.json illisible ({exc})")
+
+    return Taxonomie(domaines, competences, mapping, meta)
+
+
+def construire_taxonomie(conn: sqlite3.Connection, taxo: "Taxonomie",
+                         seuil: float = SEUIL_LEXICAL) -> dict:
+    """Crée les tables de taxonomie et rattache chaque bloc réel. Renvoie des stats."""
+    conn.execute("DROP TABLE IF EXISTS domaine")
+    conn.execute(
+        "CREATE TABLE domaine ("
+        "domaine_id TEXT PRIMARY KEY, libelle TEXT, description TEXT, ordre INTEGER)")
+    conn.executemany(
+        "INSERT OR REPLACE INTO domaine (domaine_id, libelle, description, ordre) "
+        "VALUES (?, ?, ?, ?)",
+        [(d.get("domaine_id"), d.get("libelle"), d.get("description"),
+          d.get("ordre")) for d in taxo.domaines])
+
+    conn.execute("DROP TABLE IF EXISTS competence_canonique")
+    conn.execute(
+        "CREATE TABLE competence_canonique ("
+        "competence_id TEXT PRIMARY KEY, domaine_id TEXT, libelle TEXT, "
+        "description TEXT, mots_cles TEXT, nb_blocs INTEGER DEFAULT 0)")
+    conn.executemany(
+        "INSERT OR REPLACE INTO competence_canonique "
+        "(competence_id, domaine_id, libelle, description, mots_cles) "
+        "VALUES (?, ?, ?, ?, ?)",
+        [(c.get("competence_id"), c.get("domaine_id"), c.get("libelle"),
+          c.get("description"), c.get("mots_cles")) for c in taxo.competences])
+
+    conn.execute("DROP TABLE IF EXISTS bloc_competence_canonique")
+    conn.execute(
+        "CREATE TABLE bloc_competence_canonique ("
+        "bloc_code TEXT PRIMARY KEY, numero_fiche TEXT, competence_id TEXT, "
+        "methode TEXT, score REAL)")
+
+    # Jetons précalculés par compétence canonique (pour le repli lexical).
+    comp_tokens = {
+        c.get("competence_id"): tokeniser((c.get("mots_cles") or "").replace("|", " "))
+        for c in taxo.competences
+    }
+
+    stats = {"nb_blocs": 0, "blocs_ia": 0, "blocs_lexical": 0, "blocs_non_classe": 0}
+    lignes = conn.execute(
+        "SELECT bloc_code, numero_fiche, bloc_libelle, liste_competences "
+        "FROM bloc_competences_xml WHERE TRIM(bloc_code) != ''"
+    ).fetchall()
+    a_inserer = []
+    for bloc_code, numero, libelle, comps in lignes:
+        if bloc_code in taxo.mapping:
+            cid, _methode_source, score = taxo.mapping[bloc_code]
+            methode = "ia"  # une entrée de mapping vaut toujours provenance IA
+        else:
+            texte = f"{libelle or ''} {comps or ''}"
+            cid, score = meilleur_match_lexical(texte, comp_tokens, seuil)
+            methode = "lexical" if cid else "non_classe"
+        a_inserer.append((bloc_code, numero, cid, methode, score))
+        stats["nb_blocs"] += 1
+        stats["blocs_" + methode] += 1
+    conn.executemany(
+        "INSERT OR IGNORE INTO bloc_competence_canonique "
+        "(bloc_code, numero_fiche, competence_id, methode, score) VALUES (?, ?, ?, ?, ?)",
+        a_inserer)
+
+    conn.execute(
+        "UPDATE competence_canonique SET nb_blocs = ("
+        "SELECT COUNT(*) FROM bloc_competence_canonique m "
+        "WHERE m.competence_id = competence_canonique.competence_id)")
+
+    total = stats["nb_blocs"] or 1
+    for cle in ("ia", "lexical", "non_classe"):
+        stats[f"blocs_{cle}_pct"] = round(100 * stats[f"blocs_{cle}"] / total, 1)
+    conn.commit()
+    return stats
+
+
+def creer_vue_certification_competence(conn: sqlite3.Connection) -> None:
+    """Vue diplôme -> compétences canoniques couvertes (blocs non classés exclus)."""
+    conn.execute("DROP VIEW IF EXISTS certification_competence")
+    conn.execute(
+        "CREATE VIEW certification_competence AS "
+        "SELECT DISTINCT b.numero_fiche, m.competence_id, cc.domaine_id "
+        "FROM bloc_competences_xml b "
+        "JOIN bloc_competence_canonique m ON m.bloc_code = b.bloc_code "
+        "JOIN competence_canonique cc ON cc.competence_id = m.competence_id")
+    conn.commit()
+
+
+def indexer_taxonomie(conn: sqlite3.Connection) -> None:
+    """Index de jointure sur la table de rattachement."""
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_bcc_numero "
+        "ON bloc_competence_canonique (numero_fiche)")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_bcc_competence "
+        "ON bloc_competence_canonique (competence_id)")
+    conn.commit()
 
 
 def http_get(url: str) -> bytes:
@@ -476,6 +675,17 @@ def main() -> None:
         action="store_true",
         help="ignorer les exports XML (base construite depuis les seuls CSV)",
     )
+    parser.add_argument(
+        "--taxonomie-dir",
+        type=Path,
+        default=Path("taxonomie"),
+        help="répertoire de l'artefact de taxonomie (défaut : taxonomie/)",
+    )
+    parser.add_argument(
+        "--no-taxonomie",
+        action="store_true",
+        help="ignorer la phase de taxonomie de compétences",
+    )
     args = parser.parse_args()
 
     only_active = not args.all
@@ -532,17 +742,42 @@ def main() -> None:
     create_indexes(conn, tables)
     fts_ok = create_fts(conn, standard_table)
 
-    write_meta(
-        conn,
-        {
-            "source": DATASET_API,
-            "csv_zip": str(csv_zip),
-            "xml_zips": ", ".join(str(p) for p in xml_zips),
-            "perimetre": "toutes fiches" if args.all else "fiches actives",
-            "fiches_xml": str(xml_count),
-            "fts": "oui" if fts_ok else "non",
-        },
-    )
+    taxo = None
+    taxo_stats: dict = {}
+    if not args.no_taxonomie:
+        taxo = charger_taxonomie(args.taxonomie_dir)
+        if taxo is None:
+            log(f"\nTaxonomie : artefact absent/incomplet dans {args.taxonomie_dir}, étape ignorée.")
+    if taxo is not None:
+        log("\nConstruction de la taxonomie de compétences…")
+        taxo_stats = construire_taxonomie(conn, taxo)
+        creer_vue_certification_competence(conn)
+        indexer_taxonomie(conn)
+        log(f"  couverture : ia {taxo_stats['blocs_ia_pct']}% · "
+            f"lexical {taxo_stats['blocs_lexical_pct']}% · "
+            f"non classé {taxo_stats['blocs_non_classe_pct']}%")
+
+    meta_entries = {
+        "source": DATASET_API,
+        "csv_zip": str(csv_zip),
+        "xml_zips": ", ".join(str(p) for p in xml_zips),
+        "perimetre": "toutes fiches" if args.all else "fiches actives",
+        "fiches_xml": str(xml_count),
+        "fts": "oui" if fts_ok else "non",
+        "taxonomie": "oui" if taxo is not None else "non",
+    }
+    if taxo is not None:
+        meta_entries.update({
+            "nb_domaines": str(len(taxo.domaines)),
+            "nb_competences_canoniques": str(len(taxo.competences)),
+            "blocs_ia_pct": str(taxo_stats["blocs_ia_pct"]),
+            "blocs_lexical_pct": str(taxo_stats["blocs_lexical_pct"]),
+            "blocs_non_classe_pct": str(taxo_stats["blocs_non_classe_pct"]),
+        })
+        for cle in ("version", "date", "modele"):
+            if cle in taxo.meta:
+                meta_entries[f"taxonomie_{cle}"] = str(taxo.meta[cle])
+    write_meta(conn, meta_entries)
 
     log(f"\nBase construite : {db_path} ({db_path.stat().st_size / 1e6:.1f} Mo)")
     log("Tables : " + ", ".join(
