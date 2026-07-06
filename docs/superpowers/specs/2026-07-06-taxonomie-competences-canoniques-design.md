@@ -213,7 +213,8 @@ non-déterminisme (embeddings/LLM) est **cantonné à l'outil taxonomie**, gelé
   - un bloc **mappé IA**, un bloc **nouveau rattaché en lexical**, un bloc **`non_classe`**
     sous le seuil ;
   - vue `certification_competence` cohérente (un diplôme → ses compétences) ;
-  - stats `meta` de couverture justes (somme des pourcentages = 100).
+  - stats `meta` de couverture justes (part `ia` + `lexical` + `non_classe`
+    ≈ 100, aux arrondis près).
 - Outil taxonomie : tests unitaires du **repli lexical** (déterministe) et du **parsing
   d'artefact**. Le cœur embeddings/LLM est documenté comme non testable hors-ligne.
 
