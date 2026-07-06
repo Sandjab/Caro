@@ -1,0 +1,36 @@
+domaine_id;libelle;description;ordre
+transversal;Compétences transversales;Compétences communes à de nombreuses certifications (responsabilité, communication, données, numérique);1
+enseignement_general;Enseignement général;Matières générales des CAP/bac pro (maths, français, langues, EPS, PSE…);2
+numerique;Numérique & informatique;Développement, réseaux, systèmes, données, cybersécurité, web;3
+commerce_vente;Commerce, vente & marketing;Vente, relation client, marketing, animation commerciale;4
+gestion_management;Gestion, management & organisation;Pilotage d'organisation, management d'équipe, projet, qualité;5
+comptabilite_finance;Comptabilité, finance & paie;Comptabilité, contrôle de gestion, paie, fiscalité;6
+banque_assurance;Banque, assurance & patrimoine;Banque, assurance, immobilier, gestion de patrimoine;7
+rh;Ressources humaines;Recrutement, paie sociale, développement RH, relations sociales;8
+droit;Droit & juridique;Conseil juridique, contentieux, rédaction d'actes, veille;9
+industrie;Industrie, production & mécanique;Conception, fabrication, maintenance, systèmes pluritechniques;10
+electrotech;Électricité, électronique & systèmes embarqués;Installations électriques, électronique, systèmes embarqués, automatisme;11
+energie;Énergie & génie climatique;Génie climatique, froid, efficacité énergétique, photovoltaïque, nucléaire;12
+btp;Bâtiment & travaux publics;Gros œuvre, finitions, génie civil, diagnostic, réhabilitation;13
+transport_logistique;Transport & logistique;Transport, logistique, manutention, magasinage, supply chain;14
+agroalimentaire;Agro-alimentaire, alimentation & cuisine;Production alimentaire, cuisine, traiteur, industries agroalimentaires;15
+sante_biologie;Santé & biologie;Soin, biologie médicale, dispositifs médicaux, stérilisation, laboratoire;16
+social_animation;Social, animation & services à la personne;Travail social, animation socioculturelle, accompagnement des publics;17
+communication_media;Communication, média & design;Communication, journalisme, design graphique, audiovisuel, événementiel;18
+sciences_ingenierie;Sciences & ingénierie;Ingénierie de systèmes complexes, R&D, sciences appliquées;19
+sport;Sport & activités physiques;Encadrement d'activités physiques et sportives, animation sportive;20
+qualite_hse;Qualité, hygiène, sécurité & environnement;QHSE, démarche qualité, prévention des risques, développement durable;21
+tourisme;Tourisme & loisirs;Accueil touristique, loisirs, écosystème touristique;22
+hotellerie_restauration;Hôtellerie, restauration & cuisine;Cuisine, service, hébergement, accueil en restauration;23
+agriculture_nature;Agriculture, nature & paysage;Productions végétales et animales, forêt, espaces naturels, aménagement paysager, soins aux animaux;24
+automobile;Automobile, engins & carrosserie;Maintenance et réparation de véhicules, moteurs, carrosserie;25
+chimie_materiaux;Chimie, matériaux & plasturgie;Transformations chimiques, plasturgie, matériaux composites, pharmacie industrielle;26
+metallurgie;Métallurgie & structures métalliques;Soudure, chaudronnerie, usinage des métaux, structures, aéronautique;27
+bois_ameublement;Bois & ameublement;Travail du bois, menuiserie, ameublement;28
+mode_textile;Mode, textile & habillement;Habillement, couture, mode, textile, cuir;29
+esthetique_coiffure;Coiffure, esthétique & soins de beauté;Coiffure, esthétique, cosmétique, soins de beauté;30
+securite;Sécurité, prévention & défense;Sécurité des biens et des personnes, surveillance, secours, défense;31
+proprete_environnement;Propreté & environnement;Nettoyage, assainissement, gestion des déchets, protection de l'environnement;32
+enseignement_formation;Enseignement & formation;Enseignement, formation, ingénierie pédagogique, accompagnement des apprentissages;33
+urbanisme_territoire;Aménagement, urbanisme & territoire;Aménagement du territoire, urbanisme, développement local, géomatique;34
+arts_culture;Arts, spectacle & culture;Musique, arts du spectacle, arts plastiques, patrimoine culturel, documentation;35
