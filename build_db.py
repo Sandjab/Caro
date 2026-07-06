@@ -664,6 +664,17 @@ def main() -> None:
         action="store_true",
         help="ignorer les exports XML (base construite depuis les seuls CSV)",
     )
+    parser.add_argument(
+        "--taxonomie-dir",
+        type=Path,
+        default=Path("taxonomie"),
+        help="répertoire de l'artefact de taxonomie (défaut : taxonomie/)",
+    )
+    parser.add_argument(
+        "--no-taxonomie",
+        action="store_true",
+        help="ignorer la phase de taxonomie de compétences",
+    )
     args = parser.parse_args()
 
     only_active = not args.all
@@ -720,17 +731,42 @@ def main() -> None:
     create_indexes(conn, tables)
     fts_ok = create_fts(conn, standard_table)
 
-    write_meta(
-        conn,
-        {
-            "source": DATASET_API,
-            "csv_zip": str(csv_zip),
-            "xml_zips": ", ".join(str(p) for p in xml_zips),
-            "perimetre": "toutes fiches" if args.all else "fiches actives",
-            "fiches_xml": str(xml_count),
-            "fts": "oui" if fts_ok else "non",
-        },
-    )
+    taxo = None
+    taxo_stats: dict = {}
+    if not args.no_taxonomie:
+        taxo = charger_taxonomie(args.taxonomie_dir)
+        if taxo is None:
+            log(f"\nTaxonomie : artefact absent/incomplet dans {args.taxonomie_dir}, étape ignorée.")
+    if taxo is not None:
+        log("\nConstruction de la taxonomie de compétences…")
+        taxo_stats = construire_taxonomie(conn, taxo)
+        creer_vue_certification_competence(conn)
+        indexer_taxonomie(conn)
+        log(f"  couverture : ia {taxo_stats['blocs_ia_pct']}% · "
+            f"lexical {taxo_stats['blocs_lexical_pct']}% · "
+            f"non classé {taxo_stats['blocs_non_classe_pct']}%")
+
+    meta_entries = {
+        "source": DATASET_API,
+        "csv_zip": str(csv_zip),
+        "xml_zips": ", ".join(str(p) for p in xml_zips),
+        "perimetre": "toutes fiches" if args.all else "fiches actives",
+        "fiches_xml": str(xml_count),
+        "fts": "oui" if fts_ok else "non",
+        "taxonomie": "oui" if taxo is not None else "non",
+    }
+    if taxo is not None:
+        meta_entries.update({
+            "nb_domaines": str(len(taxo.domaines)),
+            "nb_competences_canoniques": str(len(taxo.competences)),
+            "blocs_ia_pct": str(taxo_stats["blocs_ia_pct"]),
+            "blocs_lexical_pct": str(taxo_stats["blocs_lexical_pct"]),
+            "blocs_non_classe_pct": str(taxo_stats["blocs_non_classe_pct"]),
+        })
+        for cle in ("version", "date", "modele"):
+            if cle in taxo.meta:
+                meta_entries[f"taxonomie_{cle}"] = str(taxo.meta[cle])
+    write_meta(conn, meta_entries)
 
     log(f"\nBase construite : {db_path} ({db_path.stat().st_size / 1e6:.1f} Mo)")
     log("Tables : " + ", ".join(
