@@ -103,6 +103,23 @@ def slugify(name: str) -> str:
     return text
 
 
+# Mots vides français fréquents (≥ 3 caractères) écartés de la tokenisation.
+MOTS_VIDES = {
+    "les", "des", "une", "aux", "dans", "pour", "par", "sur", "avec", "ses",
+    "son", "sa", "leur", "leurs", "que", "qui", "aux", "ces", "cette", "est",
+    "ou", "et", "en", "un", "au", "de", "du", "la", "le",
+}
+
+
+def tokeniser(texte: str) -> set[str]:
+    """Découpe un texte en jetons normalisés (minuscule, sans accent, ≥ 3 car.)."""
+    texte = unicodedata.normalize("NFKD", texte)
+    texte = "".join(c for c in texte if not unicodedata.combining(c))
+    texte = texte.lower()
+    bruts = re.split(r"[^a-z0-9]+", texte)
+    return {t for t in bruts if len(t) >= 3 and t not in MOTS_VIDES}
+
+
 def http_get(url: str) -> bytes:
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=120) as resp:
