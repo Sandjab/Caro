@@ -80,7 +80,7 @@ def indexer_taxonomie(conn) -> None
 
 ---
 
-### Tâche 1 : Tokenisation
+### Task 1 : Tokenisation
 
 **Files:**
 - Modify: `build_db.py` (ajouter après `slugify`, ~ligne 104)
@@ -164,7 +164,7 @@ git commit -m "Ajoute tokeniser() pour le rapprochement lexical de la taxonomie"
 
 ---
 
-### Tâche 2 : Score lexical et meilleur match
+### Task 2 : Score lexical et meilleur match
 
 **Files:**
 - Modify: `build_db.py` (après `tokeniser`)
@@ -268,7 +268,7 @@ git commit -m "Ajoute score_lexical() et meilleur_match_lexical()"
 
 ---
 
-### Tâche 3 : Chargement de l'artefact
+### Task 3 : Chargement de l'artefact
 
 **Files:**
 - Modify: `build_db.py` (après `meilleur_match_lexical`)
@@ -416,7 +416,7 @@ git commit -m "Ajoute charger_taxonomie() : parsing de l'artefact versionné"
 
 ---
 
-### Tâche 4 : Construction des tables et rattachement des blocs
+### Task 4 : Construction des tables et rattachement des blocs
 
 **Files:**
 - Modify: `build_db.py` (après `charger_taxonomie`)
@@ -618,7 +618,7 @@ git commit -m "Ajoute construire_taxonomie() : tables + rattachement des blocs"
 
 ---
 
-### Tâche 5 : Vue de commodité et index
+### Task 5 : Vue de commodité et index
 
 **Files:**
 - Modify: `build_db.py` (après `construire_taxonomie`)
@@ -715,7 +715,7 @@ git commit -m "Ajoute la vue certification_competence et les index de taxonomie"
 
 ---
 
-### Tâche 6 : Intégration dans `main()` (CLI, phase, meta) + test bout-en-bout
+### Task 6 : Intégration dans `main()` (CLI, phase, meta) + test bout-en-bout
 
 **Files:**
 - Modify: `build_db.py` — `argparse` (~lignes 449-479), phase après FTS (~ligne 533), bloc `meta` (~lignes 535-545)
