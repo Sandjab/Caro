@@ -145,6 +145,55 @@ def meilleur_match_lexical(
     return None, meilleur_score
 
 
+class Taxonomie:
+    """Artefact de taxonomie chargé depuis taxonomie/*.csv."""
+
+    def __init__(self, domaines, competences, mapping, meta):
+        self.domaines = domaines        # list[dict]
+        self.competences = competences  # list[dict]
+        self.mapping = mapping          # dict[str, tuple[str, str, float | None]]
+        self.meta = meta                # dict[str, str]
+
+
+def _lire_csv_point_virgule(chemin: Path) -> "list[dict]":
+    with open(chemin, encoding="utf-8-sig", newline="") as fh:
+        return list(csv.DictReader(fh, delimiter=";"))
+
+
+def charger_taxonomie(taxo_dir: Path) -> "Taxonomie | None":
+    """Charge l'artefact de taxonomie. Renvoie None si absent/incomplet."""
+    requis = ["domaines.csv", "competences_canoniques.csv", "mapping_blocs.csv"]
+    if not taxo_dir.is_dir() or any(not (taxo_dir / f).exists() for f in requis):
+        return None
+
+    domaines = _lire_csv_point_virgule(taxo_dir / "domaines.csv")
+    competences = _lire_csv_point_virgule(taxo_dir / "competences_canoniques.csv")
+    ids_connus = {c["competence_id"] for c in competences}
+
+    mapping: "dict[str, tuple[str, str, float | None]]" = {}
+    for row in _lire_csv_point_virgule(taxo_dir / "mapping_blocs.csv"):
+        cid = row.get("competence_id", "")
+        code = row.get("bloc_code", "")
+        if not code:
+            continue
+        if cid not in ids_connus:
+            log(f"  taxonomie : mapping ignoré (competence inconnue) : {code} -> {cid}")
+            continue
+        brut = row.get("score", "")
+        score = float(brut) if brut not in (None, "") else None
+        mapping[code] = (cid, row.get("methode", "ia") or "ia", score)
+
+    meta = {}
+    meta_path = taxo_dir / "meta.json"
+    if meta_path.exists():
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except (ValueError, OSError) as exc:
+            log(f"  taxonomie : meta.json illisible ({exc})")
+
+    return Taxonomie(domaines, competences, mapping, meta)
+
+
 def http_get(url: str) -> bytes:
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=120) as resp:
