@@ -242,7 +242,8 @@ def construire_taxonomie(conn: sqlite3.Connection, taxo: "Taxonomie",
     a_inserer = []
     for bloc_code, numero, libelle, comps in lignes:
         if bloc_code in taxo.mapping:
-            cid, methode, score = taxo.mapping[bloc_code]
+            cid, _methode_source, score = taxo.mapping[bloc_code]
+            methode = "ia"  # une entrée de mapping vaut toujours provenance IA
         else:
             texte = f"{libelle or ''} {comps or ''}"
             cid, score = meilleur_match_lexical(texte, comp_tokens, seuil)

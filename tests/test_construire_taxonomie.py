@@ -76,6 +76,17 @@ class TestConstruireTaxonomie(unittest.TestCase):
         self.assertEqual(self.stats["blocs_lexical"], 1)
         self.assertEqual(self.stats["blocs_non_classe"], 1)
 
+    def test_mapping_methode_malformee_comptee_ia(self):
+        conn = conn_avec_blocs()
+        taxo = taxo_test()
+        taxo.mapping = {"RNCP0001BC01": ("site_web", "MANUEL", 0.9)}
+        stats = build_db.construire_taxonomie(conn, taxo)
+        methode = conn.execute(
+            "SELECT methode FROM bloc_competence_canonique "
+            "WHERE bloc_code='RNCP0001BC01'").fetchone()[0]
+        self.assertEqual(methode, "ia")
+        self.assertEqual(stats["blocs_ia"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()
