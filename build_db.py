@@ -86,6 +86,9 @@ XML_STRUCTURED_TAGS = {
 # le format V4.x évolue et on préfère capturer trop que pas assez.
 XML_TEXT_FALLBACK_LEN = 300
 
+# Seuil de similarité lexicale en deçà duquel un bloc reste non classé.
+SEUIL_LEXICAL = 0.12
+
 
 def log(msg: str) -> None:
     print(msg, flush=True)
@@ -192,6 +195,76 @@ def charger_taxonomie(taxo_dir: Path) -> "Taxonomie | None":
             log(f"  taxonomie : meta.json illisible ({exc})")
 
     return Taxonomie(domaines, competences, mapping, meta)
+
+
+def construire_taxonomie(conn: sqlite3.Connection, taxo: "Taxonomie",
+                         seuil: float = SEUIL_LEXICAL) -> dict:
+    """Crée les tables de taxonomie et rattache chaque bloc réel. Renvoie des stats."""
+    conn.execute("DROP TABLE IF EXISTS domaine")
+    conn.execute(
+        "CREATE TABLE domaine ("
+        "domaine_id TEXT PRIMARY KEY, libelle TEXT, description TEXT, ordre INTEGER)")
+    conn.executemany(
+        "INSERT OR REPLACE INTO domaine (domaine_id, libelle, description, ordre) "
+        "VALUES (?, ?, ?, ?)",
+        [(d.get("domaine_id"), d.get("libelle"), d.get("description"),
+          d.get("ordre")) for d in taxo.domaines])
+
+    conn.execute("DROP TABLE IF EXISTS competence_canonique")
+    conn.execute(
+        "CREATE TABLE competence_canonique ("
+        "competence_id TEXT PRIMARY KEY, domaine_id TEXT, libelle TEXT, "
+        "description TEXT, mots_cles TEXT, nb_blocs INTEGER DEFAULT 0)")
+    conn.executemany(
+        "INSERT OR REPLACE INTO competence_canonique "
+        "(competence_id, domaine_id, libelle, description, mots_cles) "
+        "VALUES (?, ?, ?, ?, ?)",
+        [(c.get("competence_id"), c.get("domaine_id"), c.get("libelle"),
+          c.get("description"), c.get("mots_cles")) for c in taxo.competences])
+
+    conn.execute("DROP TABLE IF EXISTS bloc_competence_canonique")
+    conn.execute(
+        "CREATE TABLE bloc_competence_canonique ("
+        "bloc_code TEXT PRIMARY KEY, numero_fiche TEXT, competence_id TEXT, "
+        "methode TEXT, score REAL)")
+
+    # Jetons précalculés par compétence canonique (pour le repli lexical).
+    comp_tokens = {
+        c["competence_id"]: tokeniser((c.get("mots_cles") or "").replace("|", " "))
+        for c in taxo.competences
+    }
+
+    stats = {"nb_blocs": 0, "blocs_ia": 0, "blocs_lexical": 0, "blocs_non_classe": 0}
+    lignes = conn.execute(
+        "SELECT bloc_code, numero_fiche, bloc_libelle, liste_competences "
+        "FROM bloc_competences_xml WHERE TRIM(bloc_code) != ''"
+    ).fetchall()
+    a_inserer = []
+    for bloc_code, numero, libelle, comps in lignes:
+        if bloc_code in taxo.mapping:
+            cid, methode, score = taxo.mapping[bloc_code]
+        else:
+            texte = f"{libelle or ''} {comps or ''}"
+            cid, score = meilleur_match_lexical(texte, comp_tokens, seuil)
+            methode = "lexical" if cid else "non_classe"
+        a_inserer.append((bloc_code, numero, cid, methode, score))
+        stats["nb_blocs"] += 1
+        stats["blocs_" + methode] += 1
+    conn.executemany(
+        "INSERT OR IGNORE INTO bloc_competence_canonique "
+        "(bloc_code, numero_fiche, competence_id, methode, score) VALUES (?, ?, ?, ?, ?)",
+        a_inserer)
+
+    conn.execute(
+        "UPDATE competence_canonique SET nb_blocs = ("
+        "SELECT COUNT(*) FROM bloc_competence_canonique m "
+        "WHERE m.competence_id = competence_canonique.competence_id)")
+
+    total = stats["nb_blocs"] or 1
+    for cle in ("ia", "lexical", "non_classe"):
+        stats[f"blocs_{cle}_pct"] = round(100 * stats[f"blocs_{cle}"] / total, 1)
+    conn.commit()
+    return stats
 
 
 def http_get(url: str) -> bytes:
