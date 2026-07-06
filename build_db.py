@@ -268,6 +268,29 @@ def construire_taxonomie(conn: sqlite3.Connection, taxo: "Taxonomie",
     return stats
 
 
+def creer_vue_certification_competence(conn: sqlite3.Connection) -> None:
+    """Vue diplôme -> compétences canoniques couvertes (blocs non classés exclus)."""
+    conn.execute("DROP VIEW IF EXISTS certification_competence")
+    conn.execute(
+        "CREATE VIEW certification_competence AS "
+        "SELECT DISTINCT b.numero_fiche, m.competence_id, cc.domaine_id "
+        "FROM bloc_competences_xml b "
+        "JOIN bloc_competence_canonique m ON m.bloc_code = b.bloc_code "
+        "JOIN competence_canonique cc ON cc.competence_id = m.competence_id")
+    conn.commit()
+
+
+def indexer_taxonomie(conn: sqlite3.Connection) -> None:
+    """Index de jointure sur la table de rattachement."""
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_bcc_numero "
+        "ON bloc_competence_canonique (numero_fiche)")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_bcc_competence "
+        "ON bloc_competence_canonique (competence_id)")
+    conn.commit()
+
+
 def http_get(url: str) -> bytes:
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=120) as resp:
