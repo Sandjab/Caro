@@ -1,0 +1,228 @@
+competence_id;domaine_id;libelle;description;mots_cles
+t_responsabilite;transversal;Agir en responsabilité au sein d'une organisation;;responsabilité|organisation professionnelle|éthique|posture|autonomie
+t_positionnement;transversal;Se positionner vis-à-vis d'un champ professionnel;;positionnement|champ professionnel|métier|posture professionnelle
+t_exploiter_donnees;transversal;Exploiter des données à des fins d'analyse;;exploiter données|analyse|données|traitement|statistiques|analyser
+t_outils_numeriques;transversal;Utiliser les outils numériques de référence;;outils numériques|usages numériques|bureautique|numérique de référence
+t_communiquer;transversal;S'exprimer et communiquer à l'oral et à l'écrit;;communiquer|expression|oral|écrit|communication professionnelle|langue étrangère
+t_savoirs_specialises;transversal;Mobiliser et produire des savoirs spécialisés;;savoirs spécialisés|mobiliser|produire|expertise|connaissances
+t_transformation;transversal;Contribuer à la transformation en contexte professionnel;;transformation|contexte professionnel|changement|innovation
+t_communication_specialisee;transversal;Communication spécialisée pour le transfert de connaissances;;communication spécialisée|transfert|connaissances|vulgarisation
+t_projet;transversal;Conduire un projet;;projet|conduire|piloter projet|gestion de projet|gérer un projet
+t_equipe;transversal;Animer et encadrer une équipe;;équipe|encadrer|animer|manager une équipe|coordonner
+g_maths;enseignement_general;Mathématiques;;mathématiques|maths|calcul
+g_physique_chimie;enseignement_general;Physique-chimie;;physique|chimie|sciences physiques|physique-chimie
+g_francais;enseignement_general;Français;;français|expression écrite|lettres
+g_histoire_geo;enseignement_general;Histoire-géographie et EMC;;histoire|géographie|enseignement moral|civique|emc
+g_langue;enseignement_general;Langue vivante étrangère;;langue vivante|langue étrangère|anglais|langues
+g_eps;enseignement_general;Éducation physique et sportive;;éducation physique|sportive|eps
+g_pse;enseignement_general;Prévention-santé-environnement;;prévention santé environnement|pse|prévention
+g_arts;enseignement_general;Arts appliqués et cultures artistiques;;arts appliqués|cultures artistiques|arts|artistique
+g_eco_gestion;enseignement_general;Économie-gestion;;économie gestion|économie-gestion
+g_mobilite;enseignement_general;Mobilité (bloc facultatif);;mobilité|bloc facultatif|international
+g_expression_monde;enseignement_general;Expression et connaissance du monde;;expression|connaissance du monde|culture générale
+n_dev_app;numerique;Concevoir et développer une application;;développement|application|logiciel|coder|programmer|développer application
+n_specifier_logiciel;numerique;Spécifier, concevoir et modéliser une solution logicielle;;spécifier|concevoir|modéliser|solution logicielle|architecture logicielle
+n_web;numerique;Développer pour le web et les médias numériques;;web|site|html|css|média numérique|front|back
+n_reseaux;numerique;Administrer les réseaux et télécommunications;;réseaux|télécommunications|internet|administrer réseau|infrastructure
+n_systemes;numerique;Administrer des systèmes informatiques;;systèmes informatiques|administrer système|serveur|système d'exploitation
+n_donnees;numerique;Gérer et exploiter des données de l'information;;gérer données|base de données|données de l'information|data
+n_cyber;numerique;Sécuriser un système d'information;;cybersécurité|sécurité|système d'information sécurisé|protocoles sécurisés|surveiller
+n_projet_info;numerique;Gérer un projet informatique;;projet informatique|dsi|piloter projet numérique|portefeuille projets
+n_iot;numerique;Mettre en œuvre l'Internet des objets;;internet des objets|iot|objets connectés|embarqué
+n_maintien_op;numerique;Assurer le maintien en condition opérationnelle d'un système;;maintien en condition opérationnelle|mco|supervision système|disponibilité
+n_usages_avances;numerique;Mettre en œuvre les usages avancés des outils numériques;;usages avancés|spécialisés|outils numériques avancés
+cv_vendre;commerce_vente;Vendre une offre commerciale;;vendre|vente|offre commerciale|négociation|conclure
+cv_relation_client;commerce_vente;Gérer la relation client;;relation client|clientèle|fidélisation|conseil client
+cv_marketing;commerce_vente;Concevoir et conduire les actions marketing;;marketing|démarche marketing|stratégie marketing|actions marketing
+cv_communiquer_offre;commerce_vente;Communiquer l'offre commerciale;;communiquer offre|promotion|communication commerciale
+cv_espace_vente;commerce_vente;Piloter et animer un espace de vente;;espace de vente|magasin|rayon|point de vente|merchandising
+cv_equipe_commerciale;commerce_vente;Manager une équipe commerciale;;équipe commerciale|manager commercial|animer équipe de vente
+cv_strategie_commerciale;commerce_vente;Élaborer la stratégie commerciale;;stratégie commerciale|politique commerciale|développement commercial
+cv_ecommerce;commerce_vente;Développer la vente en ligne;;e-commerce|vente en ligne|digital|marketplace
+cv_marketing_digital;commerce_vente;Élaborer et déployer une stratégie de marketing digital;;marketing digital|webmarketing|stratégie digitale|référencement|réseaux sociaux|seo
+gm_piloter_org;gestion_management;Participer au pilotage interne de l'organisation;;pilotage interne|organisation|piloter l'entreprise|performance
+gm_processus;gestion_management;Analyser les processus de l'organisation;;processus|analyser processus|organisation|environnement
+gm_parties_prenantes;gestion_management;Piloter les relations avec les parties prenantes;;parties prenantes|relations|partenaires|commanditaires
+gm_projet;gestion_management;Gérer un projet interne ou externe;;projet|gérer projet|conduite de projet
+gm_qualite;gestion_management;Piloter la démarche qualité;;qualité|démarche qualité|amélioration continue|normes|piloter par la qualité
+gm_strategie;gestion_management;Élaborer une vision stratégique;;vision stratégique|stratégie|management stratégique|décision stratégique
+gm_manager_equipe;gestion_management;Manager des équipes;;manager|équipes|management|encadrement
+gm_production;gestion_management;Organiser des activités de production de biens ou services;;production|organiser activités|biens|services|flux
+gm_culture_manageriale;gestion_management;Développer une culture managériale et organisationnelle;;culture managériale|organisationnelle|management|posture managériale
+gm_decision;gestion_management;Aider à la prise de décision;;aide à la décision|décision|pilotage|reporting
+gm_veille;gestion_management;Réaliser une veille stratégique et une intelligence économique;;veille|veille stratégique|intelligence économique|environnement professionnel|prospective
+gm_amelioration;gestion_management;Piloter l'amélioration continue et l'excellence opérationnelle;;amélioration continue|excellence opérationnelle|lean|performance|processus
+cf_compta_courante;comptabilite_finance;Gérer les opérations comptables courantes;;comptabilité|opérations comptables|écritures|compta courante
+cf_cloture;comptabilite_finance;Gérer les opérations de clôture comptable;;clôture comptable|bilan|comptes annuels|clôture
+cf_paie;comptabilite_finance;Gérer la paie et les obligations sociales;;paie|bulletin|obligations sociales|déclarations sociales
+cf_controle_gestion;comptabilite_finance;Concevoir des outils de contrôle de gestion;;contrôle de gestion|tableau de bord|budget|coûts
+cf_performance_fin;comptabilite_finance;Optimiser la performance financière;;performance financière|finance|rentabilité|analyse financière
+cf_actes_juridiques;comptabilite_finance;Rédiger et sécuriser des documents juridiques et financiers;;actes|documents juridiques|comptable|financier|sécuriser
+cf_fiscalite;comptabilite_finance;Traiter les obligations fiscales;;fiscalité|fiscal|impôts|tva|déclarations fiscales
+ba_patrimoine;banque_assurance;Conseiller en gestion de patrimoine;;patrimoine|gestion de patrimoine|patrimonial|allocation d'actifs
+ba_portefeuille;banque_assurance;Développer et gérer un portefeuille de clients;;portefeuille|clients|patrimoniaux|conseil financier
+ba_immobilier;banque_assurance;Commercialiser des biens immobiliers;;immobilier|biens|prospection immobilière|transaction
+ba_strategie_patri;banque_assurance;Concevoir des stratégies de gestion et transmission du patrimoine;;stratégie patrimoniale|transmission|patrimoine|placements
+ba_diagnostic;banque_assurance;Établir un diagnostic de la situation du client;;diagnostic|situation patrimoniale|analyse client|besoins
+ba_assurance;banque_assurance;Souscrire et gérer des contrats d'assurance;;assurance|souscription|contrats d'assurance|sinistres|risques assurés|assureur
+ba_banque;banque_assurance;Gérer l'activité et les risques bancaires;;banque|activité bancaire|risques bancaires|crédit|conseiller bancaire
+rh_admin;rh;Assurer la gestion administrative du personnel;;administration du personnel|gestion administrative|adp|contrats
+rh_paie;rh;Gérer la paie et les déclarations sociales;;paie|déclarations sociales|bulletin|obligations sociales
+rh_recrutement;rh;Piloter le recrutement et l'intégration;;recrutement|intégration|sourcing|embauche
+rh_developpement;rh;Gérer le développement des ressources humaines;;développement rh|compétences|formation|gpec
+rh_strategie;rh;Élaborer la stratégie des ressources humaines;;stratégie rh|politique rh|pilotage rh
+rh_relations_sociales;rh;Piloter les relations sociales et le dialogue social;;relations sociales|dialogue social|partenariat social|irp
+rh_performance;rh;Piloter la performance sociale et accompagner les managers;;performance sociale|accompagner managers|performance rh
+d_conseil;droit;Conseiller sur des questions juridiques;;conseil juridique|questions juridiques|appui juridique|expertise
+d_actes;droit;Rédiger des actes et documents juridiques;;actes juridiques|rédiger|documents|contrats
+d_contentieux;droit;Gérer les précontentieux et contentieux;;contentieux|précontentieux|litige|dossier juridique
+d_veille;droit;Réaliser une veille juridique;;veille juridique|veille|réglementation|enjeux juridiques
+d_expertise_intl;droit;Produire une expertise juridique en contexte international;;expertise juridique|international|multilingue|européen
+i_conception;industrie;Concevoir et dimensionner un système mécanique;;conception|dimensionner|système mécanique|bureau d'études|concevoir
+i_solution_tech;industrie;Déterminer et concrétiser la solution technique;;solution technique|solution conceptuelle|concrétiser|technico-économique
+i_fabrication;industrie;Élaborer et optimiser un processus de fabrication;;fabrication|process|usinage|production mécanique|procédé
+i_maintenance;industrie;Maintenir en condition opérationnelle un système pluritechnique;;maintenance|condition opérationnelle|système pluritechnique|dépannage
+i_installation;industrie;Organiser l'installation d'un système pluritechnique;;installation|installer système|mise en service|montage
+i_amelioration;industrie;Améliorer un système pluritechnique;;amélioration|améliorer système|optimisation|performance
+i_cycle_vie;industrie;Gérer le cycle de vie du produit et du système de production;;cycle de vie|produit|système de production|plm
+i_mecatronique;industrie;Concevoir et réaliser un système mécatronique;;mécatronique|robotique|système mécatronique|automatisme
+i_robotique;industrie;Étudier et intégrer une solution robotisée;;robotisée|robotique|robot|intégration robotisée
+i_flux;industrie;Optimiser les flux internes et externes;;flux|logistique interne|optimiser flux|supply
+i_securiser_systeme;industrie;Sécuriser le fonctionnement d'un système;;sécuriser|fonctionnement|sûreté|système industriel
+e_installation_elec;electrotech;Réaliser une installation électrique;;installation électrique|équipement électrique|électricité|câblage
+e_maintenance_elec;electrotech;Assurer la maintenance d'une installation électrique;;maintenance électrique|dépannage|autocontrôle|installation
+e_embarque;electrotech;Concevoir et développer un système embarqué;;système embarqué|embarqué|électronique|carte
+e_electronique;electrotech;Développer l'électronique analogique et numérique;;électronique|analogique|numérique|composant électronique
+e_geii;electrotech;Concevoir et vérifier la partie génie électrique et informatique industrielle;;génie électrique|geii|informatique industrielle|automatisme
+e_etude_tech;electrotech;Réaliser une étude technique et modéliser un système;;étude technique|modéliser|modélisation|système
+e_appel_offres;electrotech;Répondre à des appels d'offres dans le domaine des systèmes électriques;;appel d'offres|marchés|systèmes électriques|devis
+en_installation;energie;Réaliser des installations énergétiques, climatiques ou frigorifiques;;installation énergétique|climatique|frigorifique|génie climatique|chauffage
+en_dimensionner;energie;Dimensionner des installations énergétiques et climatiques;;dimensionner|installation énergétique|calcul|dimensionnement
+en_efficacite;energie;Optimiser la performance et l'efficacité énergétique;;efficacité énergétique|performance énergétique|optimiser|économies d'énergie
+en_photovoltaique;energie;Installer un système de production photovoltaïque;;photovoltaïque|solaire|panneaux|production électrique renouvelable
+en_nucleaire;energie;Piloter un projet en environnement nucléaire;;nucléaire|environnement nucléaire|démantèlement|installation nucléaire
+en_froid;energie;Mettre en service des systèmes frigorifiques;;frigorifique|froid|réfrigération|système frigorifique
+en_intervention;energie;Préparer une intervention;;préparation intervention|préparer chantier|intervention
+b_solutions_tech;btp;Élaborer des solutions techniques d'un projet de bâtiment ou de travaux publics;;solutions techniques|bâtiment|travaux publics|projet construction
+b_dimensionner;btp;Dimensionner des ouvrages et équipements techniques du BTP;;dimensionner|ouvrages|équipements techniques|structure|béton armé
+b_chantier;btp;Organiser et piloter un chantier;;chantier|organiser chantier|piloter chantier|conduite de travaux
+b_piloter_ouvrage;btp;Piloter techniquement un ouvrage tout au long de sa vie;;ouvrage|piloter ouvrage|maintenance ouvrage|gestion ouvrage
+b_etudes;btp;Réaliser les études techniques préalables;;études techniques|préalables|conception|projet de construction
+b_realisation;btp;Réaliser un ouvrage;;réalisation ouvrage|réaliser ouvrage|construction|maçonnerie
+b_diagnostic;btp;Réaliser un diagnostic technique d'un bâtiment;;diagnostic|diagnostic immobilier|état des lieux|bâtiment existant
+b_rehabilitation;btp;Réhabiliter un bâtiment sur le plan énergétique;;réhabiliter|réhabilitation|rénovation énergétique|bâtiment
+b_couverture;btp;Réaliser une couverture;;couverture|toiture|lauze|couvreur
+b_finitions;btp;Réaliser des travaux de finitions;;finitions|revêtements|sols|peinture|pose
+b_geotechnique;btp;Réaliser des travaux et sondages géotechniques;;géotechnique|sondages|sol|fondations
+tl_logistique;transport_logistique;Piloter les activités logistiques;;logistique|activités logistiques|entrepôt|flux logistiques
+tl_transport;transport_logistique;Concevoir et organiser une opération de transport;;transport|opération de transport|marchandises|acheminement
+tl_supply;transport_logistique;Concevoir et organiser une chaîne logistique globale;;chaîne logistique|supply chain|conception logistique|globale
+tl_management_flux;transport_logistique;Manager les ressources et flux logistiques et transports;;management logistique|flux|transports|ressources
+tl_stock;transport_logistique;Réceptionner, stocker et gérer les marchandises;;réception|stockage|stock|magasinage|entreposage
+tl_digitalisation;transport_logistique;Mettre en œuvre la digitalisation des processus logistiques;;digitalisation|processus|numérique logistique
+ag_production;agroalimentaire;Organiser et gérer une production alimentaire;;production alimentaire|fabrication|production|alimentaire
+ag_traiteur;agroalimentaire;Organiser la production traiteur;;traiteur|production traiteur|plats|cuisine traiteur
+ag_labo;agroalimentaire;Méthodologie et techniques en laboratoire de fabrication;;laboratoire|fabrication|techniques labo|analyses
+ag_iaa;agroalimentaire;Innover dans les industries agroalimentaires;;agroalimentaire|iaa|industries alimentaires|biotechnologies
+ag_biologie;agroalimentaire;Réaliser des analyses en biologie;;analyses biologie|génie biologique|biologie|expérimenter
+ag_reception;agroalimentaire;Réceptionner et stocker des marchandises alimentaires;;réception|marchandises|libre-service|rayon|stock alimentaire
+s_biologie_medicale;sante_biologie;Réaliser des examens de biologie médicale;;biologie médicale|examens|analyses médicales|laboratoire médical
+s_ingenierie_moleculaire;sante_biologie;Mettre en œuvre des techniques d'ingénierie moléculaire;;ingénierie moléculaire|biologie de la santé|cellule|molécule
+s_sterilisation;sante_biologie;Traiter et stériliser les dispositifs médicaux;;stérilisation|dispositifs médicaux|zone à atmosphère contrôlée|hospitalier
+s_soins;sante_biologie;Travailler en équipe pluriprofessionnelle de soins;;soins|équipe pluriprofessionnelle|patient|qualité des soins
+s_dm_numerique;sante_biologie;Concevoir des systèmes d'information et dispositifs médicaux numériques;;système d'information santé|dispositif médical numérique|e-santé
+s_urgence;sante_biologie;Répondre aux situations d'urgence et de crise;;urgence|crise|situations d'urgence|secours
+s_expositions;sante_biologie;Évaluer les expositions professionnelles et environnementales;;expositions|professionnelles|environnementales|risques sanitaires
+so_intervention;social_animation;Concevoir des interventions sociales adaptées;;intervention sociale|adaptée|enjeux de société|accompagnement
+so_partenariat;social_animation;Construire des dynamiques partenariales et territoriales;;partenariat|dynamiques partenariales|territoriale|acteurs
+so_communication_ts;social_animation;Communication professionnelle en travail social;;communication|travail social|communication professionnelle
+so_contexte;social_animation;Analyser les contextes institutionnels;;contextes institutionnels|institution|cohésion sociale
+so_accompagnement;social_animation;Accompagner et renforcer les capacités des publics;;accompagner|publics|capacités|renforcer|autonomie
+so_vivre_ensemble;social_animation;Organiser le vivre ensemble des publics accueillis;;vivre ensemble|publics accueillis|animation socioculturelle|loisirs
+so_aide_personne;social_animation;Accompagner les personnes dans les actes de la vie quotidienne;;aide à la personne|services à la personne|auxiliaire de vie|dépendance|petite enfance|domicile
+so_mediation;social_animation;Conduire une médiation thérapeutique, artistique ou sociale;;médiation|art-thérapie|médiation thérapeutique|médiation artistique|médiation sociale
+cm_communication;communication_media;Concevoir une stratégie de communication;;stratégie communication|communication|plan de communication
+cm_moyens;communication_media;Élaborer des moyens de communication (print, numériques, événementiels);;moyens de communication|print|numérique|événementiel|médias
+cm_information;communication_media;Informer et communiquer au sein des organisations;;informer|communiquer|organisation|information
+cm_design_graphique;communication_media;Piloter une production en design graphique;;design graphique|design|graphisme|cahier des charges graphique
+cm_creatif;communication_media;Explorer les pistes créatives d'un projet de design;;créatif|pistes créatives|création|concept
+cm_audiovisuel;communication_media;Réaliser une production audiovisuelle;;audiovisuel|montage|production audiovisuelle|cinématographique|vidéo
+cm_spectacle;communication_media;Produire et exploiter un spectacle vivant;;spectacle vivant|spectacle|scène|technique du spectacle
+cm_message_numerique;communication_media;Exprimer un message avec les médias numériques;;message|médias numériques|contenu numérique|communication numérique
+si_ingenierie_systeme;sciences_ingenierie;Réaliser l'ingénierie d'un système complexe;;ingénierie|système complexe|conception système|systèmes
+si_prototype;sciences_ingenierie;Concevoir et prototyper des dispositifs innovants;;prototyper|prototype|dispositifs innovants|innovation|concevoir
+si_problemes;sciences_ingenierie;Résoudre des problèmes en mobilisant des savoirs scientifiques;;résoudre problèmes|scientifiques|techniques|causalités multiples
+si_manager_projet_ing;sciences_ingenierie;Manager un projet ou programme d'ingénierie;;manager projet|programme|ingénierie|équipes pluridisciplinaires
+si_eval_technico_eco;sciences_ingenierie;Réaliser une évaluation technique et économique d'un projet;;évaluation technique|économique|projet|technico-économique
+si_qhse_etudes;sciences_ingenierie;Réaliser des études globales QHSE et manager les risques;;qhse|études|risques|qualité hygiène sécurité environnement
+sp_encadrer;sport;Encadrer des séances d'activité physique et sportive;;encadrer|séances|activité physique|sportive|animation sportive
+sp_projet_aps;sport;Concevoir et mettre en œuvre un projet d'animation sportive;;projet d'animation|activités physiques|projet aps|développement des aps
+sp_valoriser;sport;Valoriser les activités et projets d'une structure sportive;;valoriser|activités|structure|animation
+sp_parcours;sport;Conduire son parcours professionnel dans les APS;;parcours professionnel|activités physiques et sportives|conduite de carrière
+sp_securite_aquatique;sport;Assurer le sauvetage et la sécurité en milieu aquatique;;sauvetage|sécurité aquatique|milieu aquatique|natation
+q_qualite;qualite_hse;Mettre en œuvre des règles, normes et démarches qualité;;normes|démarche qualité|règles|qualité
+q_hse;qualite_hse;Contrôler les aspects hygiène, sécurité, environnement;;hygiène|sécurité|hse|prévention des risques
+q_developpement_durable;qualite_hse;Mettre en œuvre une démarche de développement durable;;développement durable|durable|rse|environnemental
+q_eco_conception;qualite_hse;Éco-concevoir des produits et évaluer l'impact environnemental;;éco-conception|impact environnemental|éco-concevoir|cycle de vie
+q_metrologie;qualite_hse;Déployer la métrologie et la démarche qualité;;métrologie|mesures|contrôle qualité|étalonnage
+to_experience;tourisme;Participer à la réalisation d'une expérience touristique;;expérience touristique|tourisme|touristique|séjour
+to_ecosysteme;tourisme;Savoir-agir au sein d'un écosystème touristique;;écosystème touristique|acteurs du tourisme|territoire touristique
+to_loisirs;tourisme;Concevoir et animer des activités de loisirs;;loisirs|animation|activités de loisirs|accueil collectif
+hr_cuisine;hotellerie_restauration;Élaborer et produire une cuisine;;cuisine|cuisinier|plats|production culinaire|dressage
+hr_patisserie;hotellerie_restauration;Réaliser des productions de pâtisserie et de boulangerie;;pâtisserie|boulangerie|pâtissier|desserts|viennoiserie
+hr_service;hotellerie_restauration;Assurer le service en salle et le bar;;service en salle|restaurant|bar|sommellerie|accueil client
+hr_hebergement;hotellerie_restauration;Assurer l'accueil et l'hébergement;;hébergement|réception|hôtel|accueil|étages
+hr_gestion_resto;hotellerie_restauration;Gérer une exploitation de restauration ou d'hôtellerie;;gestion restauration|exploitation|hôtellerie|management restauration
+an_prod_vegetale;agriculture_nature;Conduire une production végétale ou une culture;;production végétale|culture|agronomie|cultures spécialisées|maraîchage
+an_prod_animale;agriculture_nature;Conduire un élevage et assurer les soins aux animaux;;élevage|production animale|soins aux animaux|animalier|aquaculture
+an_paysage;agriculture_nature;Aménager et entretenir des espaces paysagers;;aménagement paysager|paysage|espaces verts|jardins|jardinier
+an_foret;agriculture_nature;Gérer la forêt et les espaces naturels;;forêt|espaces naturels|faune sauvage|sylviculture|nature
+an_agroequipement;agriculture_nature;Utiliser et entretenir les agroéquipements;;agroéquipement|machinisme agricole|matériel agricole|engins agricoles
+an_exploitation;agriculture_nature;Piloter une exploitation agricole;;exploitation agricole|gestion agricole|entreprise agricole|installation
+an_veterinaire;agriculture_nature;Réaliser des soins vétérinaires et de santé animale;;vétérinaire|santé animale|soins vétérinaires|clinique vétérinaire|auxiliaire vétérinaire
+au_maintenance;automobile;Réaliser la maintenance et la réparation d'un véhicule;;maintenance véhicule|réparation automobile|mécanique auto|entretien
+au_diagnostic;automobile;Diagnostiquer une panne sur un véhicule;;diagnostic|panne|dépannage véhicule|électronique embarquée
+au_carrosserie;automobile;Réparer et peindre une carrosserie;;carrosserie|peinture|tôlerie|réparation carrosserie
+au_engins;automobile;Assurer la maintenance d'engins et de matériels;;engins|matériels|maintenance engins|poids lourds|agricole
+ch_synthese;chimie_materiaux;Synthétiser des molécules et produire des composés;;synthèse|molécules|composés|produits finis|chimie
+ch_procede;chimie_materiaux;Conduire un procédé de transformation chimique;;procédé chimique|transformation|production chimique|conduite d'installation
+ch_analyse;chimie_materiaux;Réaliser des analyses et caractériser des matériaux;;analyse|caractériser|matériaux|grandeurs physiques|laboratoire chimie
+ch_plasturgie;chimie_materiaux;Mettre en œuvre des matériaux plastiques et composites;;plasturgie|plastiques|composites|matériaux|injection
+ch_formulation;chimie_materiaux;Élaborer des matériaux et produits formulés;;formuler|matériaux|produits formulés|élaborer matériaux
+ch_pharma;chimie_materiaux;Produire dans un environnement pharmaceutique ou cosmétique;;pharmaceutique|cosmétique|bonnes pratiques de fabrication|bpf|production pharma
+me_soudure;metallurgie;Réaliser des assemblages soudés;;soudure|soudage|assemblage|souder
+me_chaudronnerie;metallurgie;Fabriquer des ouvrages de chaudronnerie et de tôlerie;;chaudronnerie|tôlerie|ouvrages métalliques|pliage
+me_structures;metallurgie;Réaliser des structures métalliques;;structures métalliques|charpente métallique|serrurerie|métallier
+me_usinage;metallurgie;Usiner des pièces mécaniques;;usinage|usiner|tournage|fraisage|commande numérique
+me_aeronautique;metallurgie;Réaliser la maintenance ou la fabrication aéronautique;;aéronautique|aérostructure|maintenance aéronautique|spatial
+bo_menuiserie;bois_ameublement;Fabriquer et poser des ouvrages de menuiserie;;menuiserie|bois|menuisier|ouvrages bois|agencement
+bo_ameublement;bois_ameublement;Concevoir et fabriquer du mobilier;;ameublement|mobilier|ébénisterie|meuble
+bo_travail_bois;bois_ameublement;Transformer et travailler le bois;;travail du bois|scierie|transformation bois|matériau bois
+mt_couture;mode_textile;Réaliser des vêtements et des ouvrages de couture;;couture|vêtement|habillement|couturier|confection
+mt_mode;mode_textile;Concevoir un produit de mode;;mode|stylisme|modélisme|création mode|collection
+mt_textile_cuir;mode_textile;Mettre en œuvre des matériaux textiles ou le cuir;;textile|cuir|maroquinerie|matières|tissu
+ec_coiffure;esthetique_coiffure;Réaliser des prestations de coiffure;;coiffure|coiffeur|coupe|coloration|coiffer
+ec_esthetique;esthetique_coiffure;Réaliser des soins esthétiques et de beauté;;esthétique|soins de beauté|esthéticienne|soins du visage|maquillage
+ec_cosmetique;esthetique_coiffure;Conseiller et vendre des produits cosmétiques;;cosmétique|produits de beauté|conseil beauté|parfumerie
+ec_spa;esthetique_coiffure;Réaliser des soins corporels et de bien-être;;spa|bien-être|modelage|soins corporels|massage esthétique
+se_surveillance;securite;Assurer la surveillance et la sécurité des biens et des personnes;;surveillance|sécurité|gardiennage|sûreté|agent de sécurité
+se_secours;securite;Porter secours et gérer les situations d'urgence;;secours|urgence|sauvetage|premiers secours|incendie
+se_prevention;securite;Prévenir les risques et assurer la sécurité au travail;;prévention|risques|sécurité au travail|santé et sécurité
+se_defense;securite;Exercer des missions de défense et de maintien de l'ordre;;défense|militaire|maintien de l'ordre|police|forces
+se_cyber_secu;securite;Assurer la sécurité et la gestion de crise;;gestion de crise|sécurité globale|malveillance|protection
+pe_proprete;proprete_environnement;Réaliser des prestations de propreté et de nettoyage;;propreté|nettoyage|entretien des locaux|hygiène des locaux
+pe_dechets;proprete_environnement;Gérer la collecte et le traitement des déchets;;déchets|collecte|traitement|valorisation|recyclage
+pe_assainissement;proprete_environnement;Assurer l'assainissement et le traitement de l'eau;;assainissement|eau|traitement de l'eau|réseaux|épuration
+pe_environnement;proprete_environnement;Protéger l'environnement et gérer les enjeux environnementaux;;environnement|protection de l'environnement|enjeux environnementaux|biodiversité
+ef_enseigner;enseignement_formation;Concevoir et animer des situations d'enseignement;;enseigner|enseignement|pédagogie|cours|apprentissage
+ef_formation;enseignement_formation;Concevoir et animer des actions de formation;;formation|formateur|action de formation|animer une formation
+ef_ingenierie_peda;enseignement_formation;Concevoir une ingénierie pédagogique et des ressources;;ingénierie pédagogique|dispositif de formation|ressources pédagogiques|e-learning
+ef_accompagnement;enseignement_formation;Accompagner les parcours et les apprentissages;;accompagnement|parcours|tutorat|orientation|apprenants
+ur_amenagement;urbanisme_territoire;Conduire un projet d'aménagement et d'urbanisme;;aménagement|urbanisme|projet d'aménagement|territoire|urbain
+ur_developpement_local;urbanisme_territoire;Piloter le développement local d'un territoire;;développement local|territoire|politiques publiques|collectivité
+ur_geomatique;urbanisme_territoire;Produire et exploiter des données géographiques;;géomatique|sig|cartographie|topographie|données géographiques
+ar_musique_spectacle;arts_culture;Créer et interpréter dans le domaine de la musique et du spectacle;;musique|spectacle|arts du spectacle|interprète|scène
+ar_arts_plastiques;arts_culture;Créer des œuvres en arts plastiques et visuels;;arts plastiques|arts visuels|création artistique|plasticien
+ar_patrimoine;arts_culture;Valoriser et protéger le patrimoine culturel;;patrimoine|patrimoine culturel|conservation|médiation culturelle
+ar_documentation;arts_culture;Gérer la documentation et l'information documentaire;;documentation|bibliothèque|archives|information documentaire|données
+ar_metiers_art;arts_culture;Concevoir et réaliser un ouvrage de métier d'art;;métiers d'art|artisanat d'art|bijouterie|horlogerie|restauration d'art

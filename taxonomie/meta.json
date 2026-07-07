@@ -1,0 +1,19 @@
+{
+  "version": "2",
+  "date": "2026-07-07",
+  "modele": "claude-haiku-4-5",
+  "description": "Taxonomie de competences canoniques France competences (RNCP/RS). Domaines et competences canoniques curated ; mapping des blocs par classification LLM (Haiku) des libelles de blocs distincts contre le menu canonique, avec passe de curation (juge LLM Haiku sur les rattachements a recouvrement lexical nul, correction des cas errones).",
+  "nb_domaines": 35,
+  "nb_competences_canoniques": 227,
+  "perimetre_blocs": "fiches actives",
+  "curation": {
+    "methode": "juge LLM (Haiku) sur 5459 rattachements a recouvrement lexical nul",
+    "corriges": 828,
+    "retablis_non_classe": 74
+  },
+  "couverture": {
+    "blocs_ia_pct": 85.5,
+    "blocs_lexical_pct": 0.8,
+    "blocs_non_classe_pct": 13.6
+  }
+}
