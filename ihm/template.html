@@ -28,6 +28,17 @@
   .jauge > i { display:block; height:100%; background:var(--acc); border-radius:4px; }
   .meta { font-size:.8rem; color:var(--gris); margin-top:.3rem; }
   .vide { color:var(--gris); padding:2rem 0; }
+  #panneau { position:fixed; top:0; right:0; width:min(560px,90vw); height:100vh;
+             background:#fff; border-left:1px solid var(--bord); overflow-y:auto;
+             padding:1rem 1.25rem; box-shadow:-4px 0 16px rgba(0,0,0,.08);
+             transform:translateX(100%); transition:transform .15s; }
+  #panneau.ouvert { transform:none; }
+  #panneau mark { background:#fff2a8; }
+  #panneau .bloc { border-top:1px solid var(--bord); padding:.6rem 0; }
+  #fermer { float:right; font-size:1.2rem; background:none; border:none; cursor:pointer; }
+  #filtres { display:flex; gap:1rem; flex-wrap:wrap; align-items:center;
+             margin-bottom:.75rem; font-size:.9rem; }
+  #filtres select { min-width:150px; }
   @media (max-width:768px) { main { flex-direction:column; height:auto; }
     #arbre { width:auto; border-right:none; border-bottom:1px solid var(--bord); } }
 </style>
@@ -48,11 +59,16 @@
     <div id="resultats"></div>
     <p id="pied"></p>
   </section>
+  <aside id="panneau" aria-hidden="true">
+    <button id="fermer" type="button" aria-label="Fermer">×</button>
+    <div id="fiche"></div>
+  </aside>
 </main>
 
 <script>
 const IDX_B64 = "/*__INDEX_B64__*/";
-// DET_B64 (avec DETAIL plus bas) : pas encore consommé, réservé au panneau de fiche à venir.
+// DET_B64 (avec DETAIL plus bas) : décompressé au premier clic sur « voir la fiche »,
+// jamais au chargement de la page (chargement paresseux, voir ouvrirFiche()).
 const DET_B64 = "/*__DETAIL_B64__*/";
 </script>
 <script>
@@ -61,7 +77,7 @@ const DET_B64 = "/*__DETAIL_B64__*/";
 <script>
 "use strict";
 
-// DET_B64 / DETAIL : réservés au panneau de fiche d'une tâche ultérieure, pas du code mort.
+// DET_B64 / DETAIL : chargement paresseux, cf. ouvrirFiche() plus bas.
 let DATA = null, DETAIL = null;
 const coches = new Set();
 const filtres = { niveaux: null, nsf: null, seuil: 0.5 };
@@ -198,16 +214,117 @@ function rendre() {
       <div class="barre">métier ${jauge(r.metier[0], r.metier[1])}</div>
       <div class="barre">transversal ${jauge(r.transv[0], r.transv[1])}</div>
       <p class="meta">${esc(niv)} · ${esc(nsf)} ·
+        <button type="button" class="voir" data-num="${esc(c[0])}">voir la fiche</button> ·
         <a href="https://www.francecompetences.fr/recherche/rncp/${encodeURIComponent(c[0].replace(/^RNCP/, ""))}/"
            target="_blank" rel="noopener">fiche officielle</a></p>
     </article>`;
   }).join("") + (res.length > 200
     ? `<p class="meta">… ${res.length - 200} autres, affinez vos filtres.</p>` : "");
+  zone.querySelectorAll("button.voir").forEach(b =>
+    b.addEventListener("click", () => ouvrirFiche(b.dataset.num)));
 }
 
 function esc(s) {
   return String(s).replace(/[&<>"]/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+// --- filtres ---
+function construireFiltres() {
+  const niveaux = [...new Set(DATA.certifs.map(c => c[2]))].sort();
+  const opt = v => `<option value="${esc(v)}">${v || "niveau non renseigné"}</option>`;
+  document.getElementById("filtres").innerHTML = `
+    <label>Niveau <select id="fNiv" multiple size="3">${niveaux.map(opt).join("")}</select></label>
+    <label>Domaine <select id="fNsf" multiple size="3">${
+      DATA.nsf.map((n, i) => `<option value="${i}">${esc(n[1])}</option>`).join("")}</select></label>
+    <label>Couverture min. <input id="fSeuil" type="range" min="0" max="100" step="5">
+      <output id="oSeuil"></output></label>`;
+
+  const fNiv = document.getElementById("fNiv");
+  const fNsf = document.getElementById("fNsf");
+  const fSeuil = document.getElementById("fSeuil");
+
+  const lire = () => {
+    const niv = [...fNiv.selectedOptions].map(o => o.value);
+    filtres.niveaux = niv.length ? new Set(niv) : null;
+    const nsf = [...fNsf.selectedOptions].map(o => Number(o.value));
+    filtres.nsf = nsf.length ? new Set(nsf) : null;
+    filtres.seuil = Number(fSeuil.value) / 100;
+    document.getElementById("oSeuil").textContent = fSeuil.value + " %";
+    ecrireURL(); rendre();
+  };
+  [fNiv, fNsf].forEach(el => el.addEventListener("change", lire));
+  fSeuil.addEventListener("input", lire);
+  synchroniserFiltres();
+}
+
+function synchroniserFiltres() {
+  const fSeuil = document.getElementById("fSeuil");
+  fSeuil.value = Math.round(filtres.seuil * 100);
+  document.getElementById("oSeuil").textContent = fSeuil.value + " %";
+  [...document.getElementById("fNiv").options].forEach(o => {
+    o.selected = filtres.niveaux ? filtres.niveaux.has(o.value) : false;
+  });
+  [...document.getElementById("fNsf").options].forEach(o => {
+    o.selected = filtres.nsf ? filtres.nsf.has(Number(o.value)) : false;
+  });
+}
+
+// --- panneau de fiche ---
+const panneau = document.getElementById("panneau");
+document.getElementById("fermer").addEventListener("click", fermerFiche);
+document.addEventListener("keydown", e => { if (e.key === "Escape") fermerFiche(); });
+
+function fermerFiche() {
+  panneau.classList.remove("ouvert");
+  panneau.setAttribute("aria-hidden", "true");
+}
+
+// Surligne dans le texte du bloc les libellés des compétences cochées.
+function surligner(texte, libelles) {
+  let html = esc(texte);
+  for (const mot of libelles) {
+    if (mot.length < 4) continue;
+    const motif = new RegExp(mot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+    html = html.replace(motif, m => "<mark>" + m + "</mark>");
+  }
+  return html;
+}
+
+async function ouvrirFiche(numero) {
+  const zone = document.getElementById("fiche");
+  panneau.classList.add("ouvert");
+  panneau.setAttribute("aria-hidden", "false");
+
+  if (DETAIL === null) {
+    zone.innerHTML = "<p>Chargement du détail (une seule fois)…</p>";
+    try {
+      DETAIL = await ungzip(DET_B64);
+    } catch (e) {
+      DETAIL = {};
+    }
+  }
+  const c = DATA.certifs.find(x => x[0] === numero);
+  const d = DETAIL[numero];
+  const lien = "https://www.francecompetences.fr/recherche/rncp/" +
+    encodeURIComponent(numero.replace(/^RNCP/, "")) + "/";
+
+  if (!d) {
+    zone.innerHTML = `<h2>${esc(c ? c[1] : numero)}</h2>
+      <p>Détail indisponible pour cette fiche.</p>
+      <p><a href="${lien}" target="_blank" rel="noopener">Fiche officielle</a></p>`;
+    return;
+  }
+  const mots = [...coches].map(i => DATA.competences[i][1]);
+  zone.innerHTML = `<h2>${esc(c[1])}</h2>
+    <p class="meta">${c[2] || "niveau non renseigné"} ·
+      ${c[3].map(i => esc(DATA.nsf[i][1])).join(", ")} ·
+      <a href="${lien}" target="_blank" rel="noopener">fiche officielle</a></p>
+    ${d.o ? `<h3>Objectifs et contexte</h3><p>${esc(d.o)}</p>` : ""}
+    ${d.a ? `<h3>Activités visées</h3><p>${esc(d.a)}</p>` : ""}
+    <h3>Blocs de compétences</h3>
+    ${d.b.map(b => `<div class="bloc"><strong>${esc(b[1])}</strong>
+      <p>${surligner(b[2], mots)}</p></div>`).join("")}`;
 }
 
 // --- démarrage ---
@@ -225,11 +342,14 @@ function esc(s) {
   }
   construireArbre();
   etatDepuisURL();
+  construireFiltres();
   document.getElementById("pied").textContent =
     DATA.exclues + " certifications accessibles par VAE ne sont pas listées : " +
     "leurs blocs de compétences n'ont pas pu être rattachés.";
   rendre();
-  window.addEventListener("hashchange", () => { etatDepuisURL(); rendre(); });
+  window.addEventListener("hashchange", () => {
+    etatDepuisURL(); synchroniserFiltres(); rendre();
+  });
 })();
 </script>
 </body>
