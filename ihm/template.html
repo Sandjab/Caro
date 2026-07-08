@@ -15,6 +15,7 @@
   #droite { flex:1; overflow-y:auto; padding:.75rem 1rem; }
   #recherche { width:100%; padding:.4rem; margin-bottom:.5rem; }
   .domaine > summary { cursor:pointer; font-weight:600; padding:.25rem 0; }
+  .domaine > summary input[type=checkbox] { margin-right:.35rem; vertical-align:middle; }
   .feuille { display:block; padding:.15rem 0 .15rem 1.25rem; }
   #transversales { margin-top:1rem; padding-top:.5rem;
                    border-top:1px dashed var(--bord); opacity:.75; }
@@ -103,15 +104,18 @@ async function ungzip(b64) {
 function etatDepuisURL() {
   const p = new URLSearchParams(location.hash.slice(1));
   coches.clear();
-  (p.get("c") || "").split(",").forEach(x => {
+  (p.get("c") || "").split(",").filter(x => x !== "").forEach(x => {
     const i = Number(x);
     if (Number.isInteger(i) && i >= 0 && i < DATA.competences.length) coches.add(i);
   });
   const niv = p.get("niv");
-  filtres.niveaux = niv === null ? null : new Set(niv.split(","));
+  const niveaux = niv === null ? null : new Set(niv.split(",").filter(x => x !== ""));
+  filtres.niveaux = niveaux && niveaux.size ? niveaux : null;
   const nsf = p.get("nsf");
-  filtres.nsf = nsf === null ? null
-    : new Set(nsf.split(",").map(Number).filter(i => i >= 0 && i < DATA.nsf.length));
+  const nsfSet = nsf === null ? null
+    : new Set(nsf.split(",").filter(x => x !== "").map(Number)
+        .filter(i => i >= 0 && i < DATA.nsf.length));
+  filtres.nsf = nsfSet && nsfSet.size ? nsfSet : null;
   const seuilBrut = p.get("seuil");
   const s = Number(seuilBrut);
   filtres.seuil = seuilBrut !== null && Number.isFinite(s) && s >= 0 && s <= 100
@@ -143,7 +147,23 @@ function construireArbre() {
     const d = document.createElement("details");
     d.className = "domaine";
     const s = document.createElement("summary");
-    s.textContent = DATA.domaines[idxDom];
+    const cbDom = document.createElement("input");
+    cbDom.type = "checkbox";
+    cbDom.className = "case-domaine";
+    cbDom.dataset.indices = indices.join(",");
+    cbDom.setAttribute("aria-label",
+      "Tout cocher ou décocher : " + DATA.domaines[idxDom]);
+    // Un clic sur la case ne doit pas ouvrir/fermer le <details> : le
+    // navigateur déclenche ce basculement quand le clic atteint le
+    // <summary> (même par propagation depuis un enfant). On coupe la
+    // propagation avant qu'elle n'y arrive ; la case se coche normalement,
+    // ce comportement natif ne dépendant pas de la propagation.
+    cbDom.addEventListener("click", e => e.stopPropagation());
+    cbDom.addEventListener("change", () => {
+      for (const i of indices) cbDom.checked ? coches.add(i) : coches.delete(i);
+      ecrireURL(); rendre();
+    });
+    s.append(cbDom, " " + DATA.domaines[idxDom]);
     d.appendChild(s);
     for (const i of indices) {
       const lab = document.createElement("label");
@@ -164,8 +184,17 @@ function construireArbre() {
 }
 
 function synchroniserCases() {
-  document.querySelectorAll("#arbre input[type=checkbox]").forEach(cb => {
+  document.querySelectorAll("#arbre .feuille input[type=checkbox]").forEach(cb => {
     cb.checked = coches.has(Number(cb.dataset.i));
+  });
+  // Case de domaine, tri-état : reflète TOUTES les feuilles du domaine
+  // (dataset.indices, posé une fois pour toutes dans construireArbre), pas
+  // seulement celles visibles après un filtrage par le champ de recherche.
+  document.querySelectorAll("#arbre .case-domaine").forEach(cbDom => {
+    const indices = cbDom.dataset.indices.split(",").map(Number);
+    const nCochees = indices.filter(i => coches.has(i)).length;
+    cbDom.checked = nCochees === indices.length;
+    cbDom.indeterminate = nCochees > 0 && nCochees < indices.length;
   });
   document.getElementById("compteur").textContent =
     coches.size + (coches.size > 1 ? " compétences cochées" : " compétence cochée");
