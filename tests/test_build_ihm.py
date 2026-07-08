@@ -1,3 +1,5 @@
+import contextlib
+import io
 import os
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -6,6 +8,7 @@ import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 # Seuil de paramètres pour détecter une clause IN variadique.
 # Les requêtes légitimes lient 0 ou 1 paramètre ; 999 est la limite historique de SQLite.
@@ -84,10 +87,13 @@ def conn_minimale():
 
 class TestGardeFous(unittest.TestCase):
     def test_verifier_base_ok(self):
-        self.assertIsNone(build_ihm.verifier_base(conn_minimale()))
+        conn = conn_minimale()
+        self.addCleanup(conn.close)
+        self.assertIsNone(build_ihm.verifier_base(conn))
 
     def test_vue_absente(self):
         conn = conn_minimale()
+        self.addCleanup(conn.close)
         conn.execute("DROP VIEW certification_competence")
         with self.assertRaises(build_ihm.ErreurIHM) as ctx:
             build_ihm.verifier_base(conn)
@@ -95,6 +101,7 @@ class TestGardeFous(unittest.TestCase):
 
     def test_aucune_fiche_vae_liste_les_valeurs_presentes(self):
         conn = conn_minimale()
+        self.addCleanup(conn.close)
         conn.execute("UPDATE voixdacces SET si_jury='Par l’expérience'")
         with self.assertRaises(build_ihm.ErreurIHM) as ctx:
             build_ihm.numeros_vae(conn)
@@ -104,13 +111,16 @@ class TestGardeFous(unittest.TestCase):
 
     def test_numeros_vae_filtre_et_dedoublonne(self):
         # RNCP0001 a deux voies d'accès dont la VAE : une seule occurrence
-        self.assertEqual(build_ihm.numeros_vae(conn_minimale()),
+        conn = conn_minimale()
+        self.addCleanup(conn.close)
+        self.assertEqual(build_ihm.numeros_vae(conn),
                          ["RNCP0001", "RNCP0002", "RNCP0004"])
 
 
 class TestIndex(unittest.TestCase):
     def setUp(self):
         self.conn = conn_minimale()
+        self.addCleanup(self.conn.close)
         self.index, self.exclues = build_ihm.construire_index(
             self.conn, build_ihm.numeros_vae(self.conn))
 
@@ -242,6 +252,7 @@ class _ConnexionTracante:
 class TestDetail(unittest.TestCase):
     def setUp(self):
         conn = conn_minimale()
+        self.addCleanup(conn.close)
         index, _ = build_ihm.construire_index(conn, build_ihm.numeros_vae(conn))
         self.numeros = [c[0] for c in index["certifs"]]
         self.detail = build_ihm.construire_detail(conn, self.numeros)
@@ -298,6 +309,7 @@ class TestDetailEchelle(unittest.TestCase):
         """Porte la garantie que construire_detail() n'utilise jamais IN (?,?,…),
         symétrique à TestIndexEchelle.test_pas_de_clause_in_variadique_sans_setlimit."""
         conn = _conn_grande_echelle_detail(1200)
+        self.addCleanup(conn.close)
         numeros = [f"RNCP{90000 + i:05d}" for i in range(1200)]
         conn_tracante = _ConnexionTracante(conn)
 
@@ -327,6 +339,7 @@ class TestIndexEchelle(unittest.TestCase):
         Skipped si sqlite3.Connection.setlimit indisponible (Python < 3.11).
         """
         conn = _conn_grande_echelle(1200)
+        self.addCleanup(conn.close)
         if not hasattr(conn, "setlimit"):
             self.skipTest(
                 "sqlite3.Connection.setlimit indisponible (Python < 3.11)")
@@ -351,6 +364,7 @@ class TestIndexEchelle(unittest.TestCase):
         pour un IN variadique sur des milliers de fiches.
         """
         conn = _conn_grande_echelle(1200)
+        self.addCleanup(conn.close)
         conn_tracante = _ConnexionTracante(conn)
 
         numeros = build_ihm.numeros_vae(conn)
@@ -426,6 +440,7 @@ class TestGenerer(unittest.TestCase):
             tmp = Path(tmp)
             db = tmp / "test.sqlite3"
             src = conn_minimale()
+            self.addCleanup(src.close)
             dst = sqlite3.connect(db)
             src.backup(dst)
             dst.close()
@@ -453,6 +468,42 @@ class TestGenerer(unittest.TestCase):
                              ["RNCP0001", "RNCP0004"])
             self.assertEqual(index["exclues"], 1)
 
+    def test_echec_ecriture_ne_laisse_aucun_fichier_partiel(self):
+        """Constat 1 : si l'écriture de la sortie échoue à mi-course (disque
+        plein, coupure, quota), generer() ne doit laisser derrière elle ni
+        fichier de sortie tronqué, ni fichier temporaire, et ne doit pas
+        avoir détruit une sortie préexistante valide."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            db = tmp / "test.sqlite3"
+            src = conn_minimale()
+            self.addCleanup(src.close)
+            dst = sqlite3.connect(db)
+            src.backup(dst)
+            dst.close()
+
+            (tmp / "template.html").write_text(
+                'A"/*__INDEX_B64__*/"B"/*__DETAIL_B64__*/"C/*__MATCHER_JS__*/D',
+                encoding="utf-8")
+            (tmp / "matcher.js").write_text("function matcher(){return [];}",
+                                            encoding="utf-8")
+            sortie = tmp / "index.html"
+            sortie.write_text("ANCIENNE VERSION VALIDE", encoding="utf-8")
+
+            with mock.patch("os.replace", side_effect=OSError("disque plein")):
+                with self.assertRaises(OSError):
+                    build_ihm.generer(db, tmp / "template.html",
+                                      tmp / "matcher.js", sortie)
+
+            # la sortie préexistante n'a pas été écrasée par une version
+            # partielle : os.replace a échoué avant de remplacer la cible
+            self.assertEqual(sortie.read_text(encoding="utf-8"),
+                             "ANCIENNE VERSION VALIDE")
+            # aucun fichier temporaire laissé dans le répertoire de sortie
+            self.assertEqual(
+                sorted(p.name for p in tmp.iterdir()),
+                ["index.html", "matcher.js", "template.html", "test.sqlite3"])
+
     def test_base_absente(self):
         with self.assertRaises(build_ihm.ErreurIHM) as ctx:
             build_ihm.generer(Path("nexiste_pas.sqlite3"), Path("t.html"),
@@ -460,8 +511,12 @@ class TestGenerer(unittest.TestCase):
         self.assertIn("build_db.py", str(ctx.exception))
 
     def test_main_retourne_1_et_affiche_l_erreur(self):
-        code = build_ihm.main(["--db", "nexiste_pas.sqlite3"])
+        sortie, erreur = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(sortie), contextlib.redirect_stderr(erreur):
+            code = build_ihm.main(["--db", "nexiste_pas.sqlite3"])
         self.assertEqual(code, 1)
+        # message actionnable : l'utilisateur doit savoir quoi lancer
+        self.assertIn("build_db.py", erreur.getvalue())
 
 
 if __name__ == "__main__":

@@ -17,8 +17,10 @@ import argparse
 import base64
 import gzip
 import json
+import os
 import sqlite3
 import sys
+import tempfile
 from pathlib import Path
 
 VOIE_VAE = "Par expérience"
@@ -294,14 +296,33 @@ def generer(db: Path, gabarit: Path, moteur: Path, sortie: Path) -> int:
     html = injecter(gabarit.read_text(encoding="utf-8"),
                     compresser(index), compresser(detail),
                     moteur.read_text(encoding="utf-8"))
-    sortie.parent.mkdir(parents=True, exist_ok=True)
-    sortie.write_text(html, encoding="utf-8")
-
-    taille = sortie.stat().st_size
-    log(f"  {sortie} : {taille / 1e6:.1f} Mo")
+    brut = html.encode("utf-8")
+    taille = len(brut)
     if taille > TAILLE_ALERTE:
         log(f"  ATTENTION : page de {taille / 1e6:.1f} Mo, au-delà du seuil "
             f"de {TAILLE_ALERTE / 1e6:.0f} Mo attendu.")
+
+    # Écriture atomique : on écrit d'abord dans un fichier temporaire situé
+    # dans le même répertoire que la cible (indispensable pour que le
+    # remplacement ci-dessous soit atomique — un temporaire sur une autre
+    # partition ferait échouer os.replace), puis on le déplace sur la cible.
+    # Ainsi, un échec en cours d'écriture (disque plein, coupure, quota) ne
+    # laisse ni sortie tronquée, ni sortie précédente écrasée : conforme au
+    # principe de ErreurIHM, mieux vaut ne rien produire qu'une page
+    # incomplète d'apparence plausible.
+    sortie.parent.mkdir(parents=True, exist_ok=True)
+    tmp_fd, tmp_nom = tempfile.mkstemp(
+        prefix=f".{sortie.name}.", suffix=".tmp", dir=sortie.parent)
+    tmp = Path(tmp_nom)
+    try:
+        with os.fdopen(tmp_fd, "wb") as f:
+            f.write(brut)
+        os.replace(tmp, sortie)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
+
+    log(f"  {sortie} : {taille / 1e6:.1f} Mo")
     return len(retenus)
 
 
