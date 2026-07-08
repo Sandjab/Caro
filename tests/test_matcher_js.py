@@ -25,7 +25,7 @@ def _nb_tests_executes(sortie: str) -> int | None:
     # de marqueur non-alphanumérique ([^a-zA-Z0-9]*), suivi du mot "tests",
     # espaces, et le nombre jusqu'à la fin de ligne ($).
     # Évite de dépendre du caractère non-ASCII ℹ.
-    match = re.search(r'^[^a-zA-Z0-9]*tests\s+(\d+)$', sortie, re.MULTILINE)
+    match = re.search(r'^[^a-zA-Z0-9]*tests\s+(\d+)\s*\r?$', sortie, re.MULTILINE)
     if match:
         return int(match.group(1))
     return None
@@ -122,6 +122,31 @@ class TestMatcherJS(unittest.TestCase):
         self.assertIsNone(
             _nb_tests_executes(sortie_vide),
             "Doit retourner None si le récapitulatif est absent"
+        )
+
+        # Cas 6 : récapitulatif avec fins de ligne Windows (CRLF).
+        sortie_crlf = "ℹ tests 11\r\nℹ pass 11\r\n"
+        self.assertEqual(
+            _nb_tests_executes(sortie_crlf), 11,
+            "Doit extraire le nombre même avec des fins de ligne CRLF"
+        )
+
+        # Cas 7 : faux positif potentiel avec CRLF (régression).
+        sortie_crlf_avec_faux_positif = (
+            "✔ mes tests 0 passent (0.4ms)\r\n"
+            "ℹ tests 1\r\n"
+        )
+        self.assertEqual(
+            _nb_tests_executes(sortie_crlf_avec_faux_positif), 1,
+            "Doit ignorer la ligne de résultat et extraire le récapitulatif "
+            "même avec des fins de ligne CRLF"
+        )
+
+        # Cas 8 : mot « suites » ne doit pas être confondu avec « tests ».
+        sortie_avec_suites = "ℹ suites 3\nℹ tests 5"
+        self.assertEqual(
+            _nb_tests_executes(sortie_avec_suites), 5,
+            "Doit extraire « tests 5 » et ignorer « suites 3 »"
         )
 
 
