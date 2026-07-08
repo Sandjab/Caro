@@ -180,3 +180,34 @@ def construire_index(conn: sqlite3.Connection,
     index = {"domaines": domaines, "competences": competences,
              "nsf": nsf, "certifs": certifs, "exclues": exclues}
     return index, exclues
+
+
+CHAMPS_DETAIL = {"objectifs_contexte": "o", "activites_visees": "a"}
+
+
+def construire_detail(conn: sqlite3.Connection, numeros: list[str]) -> dict:
+    """Texte de présentation et blocs de compétences, par numéro de fiche.
+
+    capacites_attestees n'est pas embarqué : ce champ redit, réagencé, le
+    contenu des liste_competences des blocs (27 Mo bruts pour rien).
+    """
+    table = _table_temp_numeros(conn, numeros)
+    detail: dict[str, dict] = {n: {"o": "", "a": "", "b": []} for n in numeros}
+
+    champs_ph = ",".join("?" * len(CHAMPS_DETAIL))
+    for num, champ, contenu in conn.execute(
+            f"SELECT numero_fiche, champ, contenu FROM fiche_texte "
+            f"JOIN {table} USING (numero_fiche) "
+            f"WHERE champ IN ({champs_ph})",
+            list(CHAMPS_DETAIL)):
+        detail[num][CHAMPS_DETAIL[champ]] = contenu or ""
+
+    for num, code, libelle, comps in conn.execute(
+            f"SELECT numero_fiche, bloc_code, bloc_libelle, "
+            f"COALESCE(liste_competences, '') FROM bloc_competences_xml "
+            f"JOIN {table} USING (numero_fiche) "
+            f"ORDER BY numero_fiche, bloc_code"):
+        detail[num]["b"].append([code, libelle, comps])
+
+    conn.execute(f"DROP TABLE {table}")
+    return detail

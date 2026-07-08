@@ -237,6 +237,82 @@ class _ConnexionTracante:
         return getattr(self._conn, name)
 
 
+class TestDetail(unittest.TestCase):
+    def setUp(self):
+        conn = conn_minimale()
+        index, _ = build_ihm.construire_index(conn, build_ihm.numeros_vae(conn))
+        self.numeros = [c[0] for c in index["certifs"]]
+        self.detail = build_ihm.construire_detail(conn, self.numeros)
+
+    def test_ne_contient_que_les_fiches_retenues(self):
+        self.assertEqual(sorted(self.detail), ["RNCP0001", "RNCP0004"])
+
+    def test_objectifs_et_activites(self):
+        self.assertEqual(self.detail["RNCP0001"]["o"], "Objectifs du dev web.")
+        self.assertEqual(self.detail["RNCP0001"]["a"], "Activités du dev web.")
+
+    def test_champ_absent_devient_chaine_vide(self):
+        # RNCP0004 n'a pas d'activites_visees
+        self.assertEqual(self.detail["RNCP0004"]["a"], "")
+
+    def test_capacites_attestees_exclu(self):
+        aplati = repr(self.detail)
+        self.assertNotIn("NE DOIT PAS ÊTRE EMBARQUÉ", aplati)
+
+    def test_blocs_tries_par_code(self):
+        blocs = self.detail["RNCP0001"]["b"]
+        self.assertEqual([b[0] for b in blocs],
+                         ["RNCP0001BC01", "RNCP0001BC02"])
+        self.assertEqual(blocs[0][1], "Créer un site")
+        self.assertEqual(blocs[0][2], "coder html")
+
+
+def _conn_grande_echelle_detail(n_fiches: int) -> sqlite3.Connection:
+    """Base en mémoire avec `n_fiches` fiches, texte de présentation et un
+    bloc de compétences chacune, pour tester construire_detail() à l'échelle
+    sans clause IN variadique."""
+    conn = sqlite3.connect(":memory:")
+    conn.executescript("""
+        CREATE TABLE fiche_texte (numero_fiche TEXT, champ TEXT, contenu TEXT);
+        CREATE TABLE bloc_competences_xml (numero_fiche TEXT, bloc_code TEXT,
+                               bloc_libelle TEXT, liste_competences TEXT);
+    """)
+    numeros = [f"RNCP{90000 + i:05d}" for i in range(n_fiches)]
+    conn.executemany(
+        "INSERT INTO fiche_texte VALUES (?, 'objectifs_contexte', ?)",
+        [(n, f"Objectifs {n}") for n in numeros])
+    conn.executemany(
+        "INSERT INTO fiche_texte VALUES (?, 'capacites_attestees', 'NE DOIT PAS ÊTRE EMBARQUÉ')",
+        [(n,) for n in numeros])
+    conn.executemany(
+        "INSERT INTO bloc_competences_xml VALUES (?, ?, 'Bloc', 'comp')",
+        [(n, n + "BC01") for n in numeros])
+    conn.commit()
+    return conn
+
+
+class TestDetailEchelle(unittest.TestCase):
+    def test_pas_de_clause_in_variadique_sans_setlimit(self):
+        """Porte la garantie que construire_detail() n'utilise jamais IN (?,?,…),
+        symétrique à TestIndexEchelle.test_pas_de_clause_in_variadique_sans_setlimit."""
+        conn = _conn_grande_echelle_detail(1200)
+        numeros = [f"RNCP{90000 + i:05d}" for i in range(1200)]
+        conn_tracante = _ConnexionTracante(conn)
+
+        detail = build_ihm.construire_detail(conn_tracante, numeros)
+        self.assertEqual(len(detail), 1200)
+
+        max_params = max(conn_tracante.requetes_param_count) \
+            if conn_tracante.requetes_param_count else 0
+        self.assertLessEqual(
+            max_params, SEUIL_PARAMETRES_MAX,
+            f"Une requête a {max_params} paramètres : suspicion de clause "
+            f"IN variadique. Requêtes enregistrées : {conn_tracante.requetes_param_count}")
+        self.assertTrue(
+            conn_tracante.requetes_param_count,
+            "Aucune requête n'a été enregistrée (enveloppe infonctionnelle)")
+
+
 class TestIndexEchelle(unittest.TestCase):
     def test_limite_forcee_moteur_reel(self):
         """Exerce le moteur SQLite réel avec la limite de variables forcée à 999.
