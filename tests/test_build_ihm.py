@@ -62,9 +62,12 @@ def conn_minimale():
         ("RNCP0003", "221", "221 : Agro-alimentaire"),
         ("RNCP0004", "310", "310 : Spécialités plurivalentes"),
     ])
+    # BC02 inséré avant BC01 (ordre non trié) : sans le ORDER BY bloc_code
+    # de construire_detail(), test_blocs_tries_par_code doit échouer — voir
+    # ce test pour la preuve que ce choix d'ordre n'est pas arbitraire.
     conn.executemany("INSERT INTO bloc_competences_xml VALUES (?,?,?,?)", [
-        ("RNCP0001", "RNCP0001BC01", "Créer un site", "coder html"),
         ("RNCP0001", "RNCP0001BC02", "Communiquer", "oral écrit"),
+        ("RNCP0001", "RNCP0001BC01", "Créer un site", "coder html"),
         ("RNCP0004", "RNCP0004BC01", "Faire un site", "html"),
     ])
     conn.executemany("INSERT INTO fiche_texte VALUES (?,?,?)", [
@@ -182,6 +185,24 @@ class TestIndex(unittest.TestCase):
         msg = str(ctx.exception)
         self.assertIn("domaine_fantome", msg)
         self.assertIn("fantome", msg)
+
+    def test_competence_id_inconnu_leve(self):
+        # certification_competence référence un competence_id absent de la
+        # table competence_canonique : repli silencieux interdit, symétrique
+        # au garde-fou domaine_id. Sans le garde-fou, RNCP0001 perdrait sa
+        # seule exigence rattachée à 'fantome' et disparaîtrait de l'index
+        # sans que rien ne le signale (comptée dans exclues, muette).
+        self.conn.executescript("""
+            DROP VIEW certification_competence;
+            CREATE VIEW certification_competence AS
+                SELECT 'RNCP0001' AS numero_fiche, 'fantome' AS competence_id,
+                       'numerique' AS domaine_id;
+        """)
+        with self.assertRaises(build_ihm.ErreurIHM) as ctx:
+            build_ihm.construire_index(self.conn, build_ihm.numeros_vae(self.conn))
+        msg = str(ctx.exception)
+        self.assertIn("fantome", msg)
+        self.assertIn("RNCP0001", msg)
 
 
 def _conn_grande_echelle(n_fiches: int) -> sqlite3.Connection:

@@ -103,12 +103,12 @@ def _table_temp_numeros(conn: sqlite3.Connection, numeros: list[str]) -> str:
     recréée (DROP TABLE IF EXISTS) à chaque appel, donc pas de conflit si
     la fonction appelante est invoquée plus d'une fois sur le même `conn`.
     """
-    conn.execute("DROP TABLE IF EXISTS numeros_a_traiter")
+    conn.execute("DROP TABLE IF EXISTS temp.numeros_a_traiter")
     conn.execute("CREATE TEMP TABLE numeros_a_traiter (numero_fiche TEXT PRIMARY KEY)")
     conn.executemany(
-        "INSERT OR IGNORE INTO numeros_a_traiter VALUES (?)",
+        "INSERT OR IGNORE INTO temp.numeros_a_traiter VALUES (?)",
         ((n,) for n in numeros))
-    return "numeros_a_traiter"
+    return "temp.numeros_a_traiter"
 
 
 def construire_index(conn: sqlite3.Connection,
@@ -159,8 +159,14 @@ def construire_index(conn: sqlite3.Connection,
     for num, cid in conn.execute(
             f"SELECT numero_fiche, competence_id FROM certification_competence "
             f"JOIN {table} USING (numero_fiche)"):
-        if cid in comp_idx:
-            exig.setdefault(num, set()).add(comp_idx[cid])
+        if cid not in comp_idx:
+            raise ErreurIHM(
+                f"competence_id {cid!r} inconnu (certification {num!r}) "
+                "absent de la table competence_canonique. Mapping incohérent "
+                "entre certification_competence et competence_canonique : "
+                "mieux vaut échouer que faire disparaître silencieusement "
+                "une exigence, voire toute une certification.")
+        exig.setdefault(num, set()).add(comp_idx[cid])
 
     # groupes NSF par fiche
     groupes: dict[str, set[int]] = {}
