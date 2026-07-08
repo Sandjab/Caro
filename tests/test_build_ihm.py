@@ -369,5 +369,32 @@ class TestIndexEchelle(unittest.TestCase):
             "Aucune requête n'a été enregistrée (enveloppe infonctionnelle)")
 
 
+class TestCompressionInjection(unittest.TestCase):
+    def test_aller_retour_gzip_base64(self):
+        obj = {"certifs": [["RNCP0001", "Développeur web", "NIV6", [0], [1, 2]]],
+               "accents": "éèêç — «»"}
+        self.assertEqual(build_ihm.decompresser(build_ihm.compresser(obj)), obj)
+
+    def test_base64_est_ascii_pur(self):
+        b64 = build_ihm.compresser({"x": "éàü"})
+        self.assertTrue(b64.isascii())
+
+    def test_injection_remplace_les_trois_marqueurs(self):
+        gabarit = ('const IDX="/*__INDEX_B64__*/";'
+                   'const DET="/*__DETAIL_B64__*/";'
+                   '/*__MATCHER_JS__*/')
+        html = build_ihm.injecter(gabarit, "AAA", "BBB", "function matcher(){}")
+        self.assertIn('const IDX="AAA";', html)
+        self.assertIn('const DET="BBB";', html)
+        self.assertIn("function matcher(){}", html)
+        for marqueur in build_ihm.MARQUEURS:
+            self.assertNotIn(marqueur, html)
+
+    def test_marqueur_manquant_leve(self):
+        with self.assertRaises(build_ihm.ErreurIHM) as ctx:
+            build_ihm.injecter("gabarit sans marqueur", "A", "B", "C")
+        self.assertIn("__INDEX_B64__", str(ctx.exception))
+
+
 if __name__ == "__main__":
     unittest.main()

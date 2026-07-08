@@ -13,6 +13,9 @@ Exemple :
 
 from __future__ import annotations
 
+import base64
+import gzip
+import json
 import sqlite3
 
 VOIE_VAE = "Par expérience"
@@ -211,3 +214,29 @@ def construire_detail(conn: sqlite3.Connection, numeros: list[str]) -> dict:
 
     conn.execute(f"DROP TABLE {table}")
     return detail
+
+
+MARQUEURS = ("/*__INDEX_B64__*/", "/*__DETAIL_B64__*/", "/*__MATCHER_JS__*/")
+
+
+def compresser(obj) -> str:
+    """JSON compact -> gzip -> base64 ASCII, prêt à être collé dans du JS."""
+    brut = json.dumps(obj, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    return base64.b64encode(gzip.compress(brut, 9)).decode("ascii")
+
+
+def decompresser(b64: str):
+    """Inverse de compresser(). Utilisée par les tests d'aller-retour."""
+    return json.loads(gzip.decompress(base64.b64decode(b64)).decode("utf-8"))
+
+
+def injecter(template: str, index_b64: str, detail_b64: str,
+             matcher_js: str) -> str:
+    """Remplace les trois marqueurs du gabarit. Lève si l'un manque."""
+    manquants = [m for m in MARQUEURS if m not in template]
+    if manquants:
+        raise ErreurIHM(
+            f"gabarit corrompu : marqueurs absents {manquants!r}")
+    html = template.replace(MARQUEURS[0], index_b64)
+    html = html.replace(MARQUEURS[1], detail_b64)
+    return html.replace(MARQUEURS[2], matcher_js)
