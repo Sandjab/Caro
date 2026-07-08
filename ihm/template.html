@@ -118,7 +118,7 @@ function etatDepuisURL() {
   filtres.nsf = nsfSet && nsfSet.size ? nsfSet : null;
   const seuilBrut = p.get("seuil");
   const s = Number(seuilBrut);
-  filtres.seuil = seuilBrut !== null && Number.isFinite(s) && s >= 0 && s <= 100
+  filtres.seuil = seuilBrut && Number.isFinite(s) && s >= 0 && s <= 100
     ? s / 100 : 0.5;
 }
 

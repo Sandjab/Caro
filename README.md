@@ -112,11 +112,12 @@ Limites, à garder à l'esprit avant de s'appuyer sur le classement :
   ou les filtres niveau/domaine plutôt que de parcourir une liste tronquée.
 - **Les liens partagés sont fragiles.** Le fragment d'URL (`#c=…&niv=…&nsf=…`)
   porte des **indices** dans les tableaux `competences` et `nsf` de l'index,
-  pas des identifiants stables. Toute compétence ajoutée, supprimée ou
-  réordonnée dans la taxonomie décale les indices qui la suivent : un lien
-  partagé, rouvert après régénération de la page, peut cocher silencieusement
-  d'autres compétences que celles voulues au moment du partage. À réserver à
-  un usage de courte durée, pas à un signet de long terme.
+  pas des identifiants stables. Les indices de compétences changent si une
+  compétence est ajoutée, supprimée ou réordonnée dans la taxonomie ; les indices
+  de domaines changent si un groupe NSF nouveau apparaît dans l'export France
+  compétences. Un lien partagé, rouvert après régénération de la page, peut cocher
+  silencieusement d'autres éléments que ceux voulus. À réserver à un usage de
+  courte durée, pas à un signet de long terme.
 
 ## Schéma de la base
 
