@@ -59,7 +59,7 @@
     <div id="resultats"></div>
     <p id="pied"></p>
   </section>
-  <aside id="panneau" aria-hidden="true">
+  <aside id="panneau" aria-hidden="true" inert>
     <button id="fermer" type="button" aria-label="Fermer">×</button>
     <div id="fiche"></div>
   </aside>
@@ -79,6 +79,8 @@ const DET_B64 = "/*__DETAIL_B64__*/";
 
 // DET_B64 / DETAIL : chargement paresseux, cf. ouvrirFiche() plus bas.
 let DATA = null, DETAIL = null;
+let detailPromesse = null;   // décompression de DET_B64 en cours (évite les doublons)
+let declencheurFiche = null; // élément à refocaliser à la fermeture du panneau
 const coches = new Set();
 const filtres = { niveaux: null, nsf: null, seuil: 0.5 };
 
@@ -221,7 +223,7 @@ function rendre() {
   }).join("") + (res.length > 200
     ? `<p class="meta">… ${res.length - 200} autres, affinez vos filtres.</p>` : "");
   zone.querySelectorAll("button.voir").forEach(b =>
-    b.addEventListener("click", () => ouvrirFiche(b.dataset.num)));
+    b.addEventListener("click", () => ouvrirFiche(b.dataset.num, b)));
 }
 
 function esc(s) {
@@ -232,7 +234,7 @@ function esc(s) {
 // --- filtres ---
 function construireFiltres() {
   const niveaux = [...new Set(DATA.certifs.map(c => c[2]))].sort();
-  const opt = v => `<option value="${esc(v)}">${v || "niveau non renseigné"}</option>`;
+  const opt = v => `<option value="${esc(v)}">${esc(v) || "niveau non renseigné"}</option>`;
   document.getElementById("filtres").innerHTML = `
     <label>Niveau <select id="fNiv" multiple size="3">${niveaux.map(opt).join("")}</select></label>
     <label>Domaine <select id="fNsf" multiple size="3">${
@@ -276,8 +278,12 @@ document.getElementById("fermer").addEventListener("click", fermerFiche);
 document.addEventListener("keydown", e => { if (e.key === "Escape") fermerFiche(); });
 
 function fermerFiche() {
+  if (!panneau.classList.contains("ouvert")) return; // déjà fermé : idempotent
   panneau.classList.remove("ouvert");
   panneau.setAttribute("aria-hidden", "true");
+  panneau.inert = true;
+  if (declencheurFiche && declencheurFiche.isConnected) declencheurFiche.focus();
+  declencheurFiche = null;
 }
 
 // Surligne dans le texte du bloc les libellés des compétences cochées.
@@ -291,23 +297,36 @@ function surligner(texte, libelles) {
   return html;
 }
 
-async function ouvrirFiche(numero) {
+async function ouvrirFiche(numero, declencheur) {
   const zone = document.getElementById("fiche");
+  declencheurFiche = declencheur || document.activeElement;
+  panneau.inert = false;
   panneau.classList.add("ouvert");
   panneau.setAttribute("aria-hidden", "false");
+  document.getElementById("fermer").focus();
+
+  const c = DATA.certifs.find(x => x[0] === numero);
+  const lien = "https://www.francecompetences.fr/recherche/rncp/" +
+    encodeURIComponent(numero.replace(/^RNCP/, "")) + "/";
 
   if (DETAIL === null) {
     zone.innerHTML = "<p>Chargement du détail (une seule fois)…</p>";
+    // Une décompression de 11,4 Mo est déjà en cours : on s'y raccroche plutôt
+    // que d'en relancer une seconde en parallèle (double clic, deux fiches).
+    if (!detailPromesse) detailPromesse = ungzip(DET_B64);
     try {
-      DETAIL = await ungzip(DET_B64);
+      DETAIL = await detailPromesse;
     } catch (e) {
-      DETAIL = {};
+      console.error("Échec de la décompression du détail des fiches :", e);
+      detailPromesse = null;
+      zone.innerHTML = `<h2>${esc(c ? c[1] : numero)}</h2>
+        <p>Le chargement du détail a échoué. Réessayez en rouvrant la fiche.</p>
+        <p><a href="${lien}" target="_blank" rel="noopener">Fiche officielle</a></p>`;
+      return;
     }
+    detailPromesse = null;
   }
-  const c = DATA.certifs.find(x => x[0] === numero);
   const d = DETAIL[numero];
-  const lien = "https://www.francecompetences.fr/recherche/rncp/" +
-    encodeURIComponent(numero.replace(/^RNCP/, "")) + "/";
 
   if (!d) {
     zone.innerHTML = `<h2>${esc(c ? c[1] : numero)}</h2>
@@ -317,7 +336,7 @@ async function ouvrirFiche(numero) {
   }
   const mots = [...coches].map(i => DATA.competences[i][1]);
   zone.innerHTML = `<h2>${esc(c[1])}</h2>
-    <p class="meta">${c[2] || "niveau non renseigné"} ·
+    <p class="meta">${esc(c[2]) || "niveau non renseigné"} ·
       ${c[3].map(i => esc(DATA.nsf[i][1])).join(", ")} ·
       <a href="${lien}" target="_blank" rel="noopener">fiche officielle</a></p>
     ${d.o ? `<h3>Objectifs et contexte</h3><p>${esc(d.o)}</p>` : ""}
