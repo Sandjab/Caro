@@ -204,6 +204,34 @@ def _conn_grande_echelle(n_fiches: int) -> sqlite3.Connection:
     return conn
 
 
+class _ConnexionTracante:
+    """Enveloppe une connexion SQLite et enregistre le nombre de paramètres
+    liés de chaque requête. Utilisée pour vérifier qu'aucune requête ne
+    construit une clause IN variadique."""
+
+    def __init__(self, conn: sqlite3.Connection):
+        self._conn = conn
+        self.requetes_param_count: list[int] = []
+
+    def execute(self, sql: str, params=()):
+        """Exécute une requête et enregistre le nombre de paramètres."""
+        param_count = len(params) if params else 0
+        self.requetes_param_count.append(param_count)
+        return self._conn.execute(sql, params)
+
+    def executemany(self, sql: str, seq_params):
+        """Exécute une requête sur plusieurs paramètres et enregistre le max."""
+        seq_params_list = list(seq_params)
+        if seq_params_list:
+            param_count = len(seq_params_list[0]) if seq_params_list[0] else 0
+            self.requetes_param_count.append(param_count)
+        return self._conn.executemany(sql, seq_params_list)
+
+    def __getattr__(self, name):
+        """Délègue les autres attributs à la connexion encapsulée."""
+        return getattr(self._conn, name)
+
+
 class TestIndexEchelle(unittest.TestCase):
     def test_beaucoup_de_fiches_sans_clause_in_variadique(self):
         """1 200 fiches, au-delà de la limite historique de 999 variables
@@ -222,6 +250,36 @@ class TestIndexEchelle(unittest.TestCase):
         index, exclues = build_ihm.construire_index(conn, numeros)
         self.assertEqual(len(index["certifs"]), 1200)
         self.assertEqual(exclues, 0)
+
+    def test_pas_de_clause_in_variadique_sans_setlimit(self):
+        """Protège contre l'introduction d'une clause IN (?,?,…) variadique,
+        indépendamment de la version de Python. 1 200 fiches en production (bien
+        au-delà du seuil historique de 999 variables SQLite).
+
+        Enveloppe la connexion pour observer le nombre de paramètres de chaque
+        requête. Assert qu'aucune requête n'a plus de 50 paramètres — un seuil
+        suffisant pour les requêtes légitimes, mais trop bas pour un IN
+        variadique sur des milliers de fiches.
+        """
+        conn = _conn_grande_echelle(1200)
+        conn_tracante = _ConnexionTracante(conn)
+
+        numeros = build_ihm.numeros_vae(conn)
+        self.assertEqual(len(numeros), 1200)
+        index, exclues = build_ihm.construire_index(conn_tracante, numeros)
+        self.assertEqual(len(index["certifs"]), 1200)
+        self.assertEqual(exclues, 0)
+
+        # Aucune requête n'a plus de 50 paramètres : repli efficace sur table temp.
+        max_params = max(conn_tracante.requetes_param_count) \
+            if conn_tracante.requetes_param_count else 0
+        self.assertLessEqual(
+            max_params, 50,
+            f"Une requête a {max_params} paramètres : suspicion de clause "
+            f"IN variadique. Requêtes enregistrées : {conn_tracante.requetes_param_count}")
+        self.assertTrue(
+            conn_tracante.requetes_param_count,
+            "Aucune requête n'a été enregistrée (enveloppe infonctionnelle)")
 
 
 if __name__ == "__main__":
