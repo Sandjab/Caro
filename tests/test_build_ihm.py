@@ -5,6 +5,11 @@ import build_ihm  # noqa: E402
 import sqlite3
 import unittest
 
+# Seuil de paramètres pour détecter une clause IN variadique.
+# Les requêtes légitimes lient 0 ou 1 paramètre ; 999 est la limite historique de SQLite.
+# Un seuil de 50 permet de détecter un IN (?,?,…) sur des milliers de fiches.
+SEUIL_PARAMETRES_MAX = 50
+
 
 def conn_minimale():
     """Base en mémoire imitant rncp.sqlite3 : 4 fiches, 1 seule exploitable.
@@ -233,12 +238,16 @@ class _ConnexionTracante:
 
 
 class TestIndexEchelle(unittest.TestCase):
-    def test_beaucoup_de_fiches_sans_clause_in_variadique(self):
-        """1 200 fiches, au-delà de la limite historique de 999 variables
-        SQLite. On force explicitement cette limite sur la connexion pour ne
-        pas dépendre du SQLite compilé localement (>= 3.32 admet 32766 par
-        défaut) : construire_index() doit aboutir malgré tout, preuve
-        qu'aucune requête ne passe la liste de numéros en paramètres IN (?,…)."""
+    def test_limite_forcee_moteur_reel(self):
+        """Exerce le moteur SQLite réel avec la limite de variables forcée à 999.
+
+        Complément optionnel (Python 3.11+ uniquement) : prouve que
+        construire_index() traite correctement 1 200 fiches malgré un moteur SQLite
+        contraint. La garantie portable sur toutes les versions Python est assurée
+        par test_pas_de_clause_in_variadique_sans_setlimit.
+
+        Skipped si sqlite3.Connection.setlimit indisponible (Python < 3.11).
+        """
         conn = _conn_grande_echelle(1200)
         if not hasattr(conn, "setlimit"):
             self.skipTest(
@@ -252,14 +261,16 @@ class TestIndexEchelle(unittest.TestCase):
         self.assertEqual(exclues, 0)
 
     def test_pas_de_clause_in_variadique_sans_setlimit(self):
-        """Protège contre l'introduction d'une clause IN (?,?,…) variadique,
-        indépendamment de la version de Python. 1 200 fiches en production (bien
-        au-delà du seuil historique de 999 variables SQLite).
+        """Porte la garantie que construire_index() n'utilise jamais IN (?,?,…).
+
+        Valide sur toutes les versions de Python (contrairement à
+        test_limite_forcee_moteur_reel). Traite 1 200 fiches en production
+        (bien au-delà du seuil historique de 999 variables SQLite).
 
         Enveloppe la connexion pour observer le nombre de paramètres de chaque
-        requête. Assert qu'aucune requête n'a plus de 50 paramètres — un seuil
-        suffisant pour les requêtes légitimes, mais trop bas pour un IN
-        variadique sur des milliers de fiches.
+        requête. Assert qu'aucune requête n'a plus de SEUIL_PARAMETRES_MAX
+        paramètres — un seuil suffisant pour les requêtes légitimes, mais trop bas
+        pour un IN variadique sur des milliers de fiches.
         """
         conn = _conn_grande_echelle(1200)
         conn_tracante = _ConnexionTracante(conn)
@@ -270,11 +281,11 @@ class TestIndexEchelle(unittest.TestCase):
         self.assertEqual(len(index["certifs"]), 1200)
         self.assertEqual(exclues, 0)
 
-        # Aucune requête n'a plus de 50 paramètres : repli efficace sur table temp.
+        # Aucune requête n'a plus de SEUIL_PARAMETRES_MAX paramètres : repli efficace sur table temp.
         max_params = max(conn_tracante.requetes_param_count) \
             if conn_tracante.requetes_param_count else 0
         self.assertLessEqual(
-            max_params, 50,
+            max_params, SEUIL_PARAMETRES_MAX,
             f"Une requête a {max_params} paramètres : suspicion de clause "
             f"IN variadique. Requêtes enregistrées : {conn_tracante.requetes_param_count}")
         self.assertTrue(
