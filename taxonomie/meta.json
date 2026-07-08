@@ -1,29 +1,82 @@
 {
-  "version": "2",
-  "date": "2026-07-07",
-  "modele": "claude-haiku-4-5",
-  "description": "Taxonomie de competences canoniques France competences (RNCP/RS). Domaines et competences canoniques curated ; mapping des blocs par classification LLM (Haiku) des libelles de blocs distincts contre le menu canonique, avec deux passes de curation : juge LLM Haiku sur les rattachements a recouvrement lexical nul (correction des cas 'faux'), puis arbitrage Sonnet des cas 'doute'.",
+  "version": "3",
+  "date": "2026-07-08",
+  "modele": "claude-sonnet-5",
+  "description": "Taxonomie de competences canoniques France competences (RNCP/RS). Domaines et competences canoniques curated ; mapping des blocs initialement produit par classification LLM (Haiku) des libelles de blocs distincts contre le menu canonique, puis integralement revu. A l'issue de la passe 3, chacun des 19 428 libelles de blocs distincts porte un jugement Sonnet : soit un arbitrage (passes 1-2), soit une verification (passe 3). Le mapping est reconstruit de facon deterministe depuis la classification d'origine en rejouant les trois passes dans l'ordre.",
   "nb_domaines": 35,
   "nb_competences_canoniques": 227,
+  "nb_competences_utilisees": 226,
   "perimetre_blocs": "fiches actives",
   "curation": {
-    "prefiltre": "5459 rattachements a recouvrement lexical nul avec la competence assignee",
-    "juge_faux": {
-      "modele": "claude-haiku-4-5",
-      "corriges": 828,
-      "retablis_non_classe": 74
+    "passe_1": {
+      "perimetre": "5459 rattachements a recouvrement lexical nul avec la competence assignee",
+      "juge_faux": {
+        "modele": "claude-haiku-4-5",
+        "corriges": 828,
+        "retablis_non_classe": 74
+      },
+      "arbitrage_doute": {
+        "modele": "claude-sonnet-5",
+        "items": 888,
+        "reclasses": 843,
+        "retablis_non_classe": 15,
+        "confirmes_inchanges": 30
+      }
     },
-    "arbitrage_doute": {
-      "modele": "claude-sonnet-5",
-      "items": 888,
-      "reclasses": 843,
-      "retablis_non_classe": 15,
-      "confirmes_inchanges": 30
+    "passe_2": {
+      "motif": "une mesure stratifiee (599 items juges par Sonnet) a montre que les rattachements a recouvrement lexical NON nul portaient le meme taux d'erreur franche (17,5 % +/- 2,8) que ceux a recouvrement nul : le recouvrement lexical ne predit pas la justesse",
+      "perimetre": "10864 rattachements a recouvrement lexical non nul",
+      "triage": {
+        "modele": "claude-haiku-4-5",
+        "couverture": "10864/10864",
+        "ok": 8430,
+        "faux": 1274,
+        "doute": 1160
+      },
+      "arbitrage": {
+        "modele": "claude-sonnet-5",
+        "perimetre": "les faux ET les doute (la proposition de correction de Haiku n'est pas appliquee telle quelle)",
+        "items": 2394,
+        "reclasses": 2246,
+        "retablis_non_classe": 72,
+        "confirmes_inchanges": 76
+      }
+    },
+    "passe_3": {
+      "motif": "Haiku validait 77,6 % des rattachements alors que Sonnet n'en validait que 64,6 % sur echantillon : le triage Haiku laissait passer des erreurs. Passe de verification Sonnet sur tout ce qu'il n'avait jamais adjuge, y compris les non_classe.",
+      "perimetre": "16146 libelles jamais arbitres par Sonnet (12976 rattachements decides par Haiku seul + 3170 non_classe)",
+      "verification": {
+        "modele": "claude-sonnet-5",
+        "couverture": "16146/16146",
+        "confirmes": 9444,
+        "reclassifies": 3434,
+        "rattrapes_depuis_non_classe": 2853,
+        "passes_en_non_classe": 98,
+        "non_classe_confirmes": 317
+      }
     }
   },
+  "certification": {
+    "principe": "juge independant, modele different de celui qui a produit le mapping, en posture de refutation, sur echantillon stratifie par domaine du mapping livre",
+    "modele": "claude-opus-4-8",
+    "echantillon": 600,
+    "population": 18928,
+    "brut": { "ok": 487, "doute": 107, "faux": 6 },
+    "taux_faux_pct": 1.0,
+    "taux_faux_ic95_pts": 0.8,
+    "taux_faux_plus_doute_pct": 18.8,
+    "taux_faux_plus_doute_ic95_pts": 3.0,
+    "par_provenance_faux_plus_doute_pct": {
+      "confirme_passe3": 17.8,
+      "rattrape_passe3": 16.8,
+      "reclassifie_passe3": 19.8,
+      "arbitre_sonnet_passe2": 22.6
+    },
+    "reserve": "le taux mesure l'accord d'Opus avec Sonnet. Un desaccord n'est pas toujours une erreur : les libelles multi-thematiques (ex. « recrutement, remuneration et paie ») n'ont pas de rattachement unique correct. Le taux faux+doute est donc un majorant ; le taux faux (1,0 %) est la mesure fiable des erreurs franches."
+  },
   "couverture": {
-    "blocs_ia_pct": 85.5,
-    "blocs_lexical_pct": 0.8,
-    "blocs_non_classe_pct": 13.7
+    "blocs_ia_pct": 96.3,
+    "blocs_lexical_pct": 0.3,
+    "blocs_non_classe_pct": 3.4
   }
 }
