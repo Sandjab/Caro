@@ -17,6 +17,11 @@ https://www.data.gouv.fr/datasets/repertoire-national-des-certifications-profess
 - `build_db.py` — script unique d'ingestion (Python 3.9+, **stdlib uniquement**,
   aucune dépendance à installer). Télécharge les derniers exports via l'API
   data.gouv.fr, puis construit `rncp.sqlite3`.
+- `build_ihm.py` — génère `ihm/index.html`, page autonome de recherche de
+  certifications par VAE (stdlib, lit la base, n'écrit jamais dedans).
+- `ihm/` — `template.html` et `matcher.js` sont versionnés ; `index.html` est
+  généré et gitignoré. Le moteur `matcher.js` est injecté verbatim dans la page
+  et testé sous `node --test` : le code testé est le code livré.
 - `README.md` — documentation utilisateur : fichiers sources, options, schéma de la
   base, exemples de requêtes SQL.
 - `data/` et `*.sqlite3` — ignorés par git (téléchargements et base générée ne sont
@@ -30,6 +35,8 @@ python3 build_db.py --all      # inclut les fiches inactives (défaut : actives 
 python3 build_db.py --no-xml   # sans le texte intégral des référentiels
 python3 build_db.py --csv-zip … --xml-zip … --xml-zip …   # mode hors ligne
 python3 build_db.py --taxonomie-dir … / --no-taxonomie    # artefact taxonomie / phase ignorée
+python3 build_ihm.py           # génère ihm/index.html depuis rncp.sqlite3
+node --test 'ihm/*.test.js'    # teste le moteur de matching (si node présent)
 ```
 
 Il existe une suite de tests unitaires sous `tests/` (fixtures synthétiques, mode

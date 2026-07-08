@@ -220,3 +220,7 @@ __marimo__/
 # Données France compétences (téléchargées) et base construite
 data/
 *.sqlite3
+
+# IHM générée (artefact, ~16 Mo) et fichier temporaire de l'écriture atomique
+ihm/index.html
+ihm/.*.tmp
