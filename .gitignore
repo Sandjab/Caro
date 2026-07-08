@@ -221,5 +221,6 @@ __marimo__/
 data/
 *.sqlite3
 
-# IHM générée (artefact, ~16 Mo)
+# IHM générée (artefact, ~16 Mo) et fichier temporaire de l'écriture atomique
 ihm/index.html
+ihm/.*.tmp

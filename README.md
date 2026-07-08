@@ -107,6 +107,16 @@ Limites, à garder à l'esprit avant de s'appuyer sur le classement :
 - **La recevabilité réelle d'une VAE n'est pas modélisée** : ni durée
   d'expérience, ni conditions de recevabilité, ni jury. L'outil oriente vers
   des candidats plausibles, il ne présume d'aucune décision.
+- **Seules les 200 premières cartes sont affichées** (la page l'indique et
+  invite à affiner les filtres) : au-delà, resserrez la couverture minimale
+  ou les filtres niveau/domaine plutôt que de parcourir une liste tronquée.
+- **Les liens partagés sont fragiles.** Le fragment d'URL (`#c=…&niv=…&nsf=…`)
+  porte des **indices** dans les tableaux `competences` et `nsf` de l'index,
+  pas des identifiants stables. Toute compétence ajoutée, supprimée ou
+  réordonnée dans la taxonomie décale les indices qui la suivent : un lien
+  partagé, rouvert après régénération de la page, peut cocher silencieusement
+  d'autres compétences que celles voulues au moment du partage. À réserver à
+  un usage de courte durée, pas à un signet de long terme.
 
 ## Schéma de la base
 
