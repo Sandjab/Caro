@@ -83,8 +83,24 @@ GROUPES_NSF = {
 DOMAINES_TRANSVERSAUX = {"transversal", "enseignement_general"}
 
 
-def _placeholders(n: int) -> str:
-    return ",".join("?" * n)
+def _table_temp_numeros(conn: sqlite3.Connection, numeros: list[str]) -> str:
+    """Crée une table temporaire des numéros de fiche à traiter et renvoie son nom.
+
+    Évite un IN (?,?,…) de plusieurs milliers de variables : SQLite en limite
+    le nombre (999 sur les builds anciens, 5 582 fiches VAE en production).
+    Même motif que build_db.py (filter_tables_to_active) : une table
+    temporaire plutôt qu'une clause IN variadique.
+
+    Réutilisable plusieurs fois sur la même connexion : la table est
+    recréée (DROP TABLE IF EXISTS) à chaque appel, donc pas de conflit si
+    la fonction appelante est invoquée plus d'une fois sur le même `conn`.
+    """
+    conn.execute("DROP TABLE IF EXISTS numeros_a_traiter")
+    conn.execute("CREATE TEMP TABLE numeros_a_traiter (numero_fiche TEXT PRIMARY KEY)")
+    conn.executemany(
+        "INSERT OR IGNORE INTO numeros_a_traiter VALUES (?)",
+        ((n,) for n in numeros))
+    return "numeros_a_traiter"
 
 
 def construire_index(conn: sqlite3.Connection,
@@ -94,7 +110,7 @@ def construire_index(conn: sqlite3.Connection,
     Une fiche VAE sans aucune compétence rattachée est exclue : on ne peut pas
     classer par couverture ce dont on ignore les exigences.
     """
-    ph = _placeholders(len(numeros))
+    table = _table_temp_numeros(conn, numeros)
 
     # domaines, dans l'ordre de la taxonomie
     dom_rows = conn.execute(
@@ -109,13 +125,19 @@ def construire_index(conn: sqlite3.Connection,
         "FROM competence_canonique ORDER BY domaine_id, competence_id").fetchall()
     competences, comp_idx = [], {}
     for cid, libelle, did, mots in comp_rows:
+        if did not in dom_idx:
+            raise ErreurIHM(
+                f"domaine_id {did!r} inconnu (compétence {cid!r} : {libelle!r}) "
+                "absent de la table domaine. Mapping incohérent entre "
+                "competence_canonique et domaine : mieux vaut échouer que "
+                "ranger silencieusement la compétence sous le premier domaine venu.")
         comp_idx[cid] = len(competences)
-        competences.append([cid, libelle, dom_idx.get(did, 0),
+        competences.append([cid, libelle, dom_idx[did],
                             1 if did in DOMAINES_TRANSVERSAUX else 0, mots])
 
     # groupes NSF réellement présents
     presents = sorted({r[0][:2] for r in conn.execute(
-        f"SELECT nsf_code FROM nsf WHERE numero_fiche IN ({ph})", numeros)})
+        f"SELECT nsf_code FROM nsf JOIN {table} USING (numero_fiche)")})
     inconnus = [g for g in presents if g not in GROUPES_NSF]
     if inconnus:
         raise ErreurIHM(
@@ -128,21 +150,22 @@ def construire_index(conn: sqlite3.Connection,
     exig: dict[str, set[int]] = {}
     for num, cid in conn.execute(
             f"SELECT numero_fiche, competence_id FROM certification_competence "
-            f"WHERE numero_fiche IN ({ph})", numeros):
+            f"JOIN {table} USING (numero_fiche)"):
         if cid in comp_idx:
             exig.setdefault(num, set()).add(comp_idx[cid])
 
     # groupes NSF par fiche
     groupes: dict[str, set[int]] = {}
     for num, code in conn.execute(
-            f"SELECT numero_fiche, nsf_code FROM nsf WHERE numero_fiche IN ({ph})",
-            numeros):
+            f"SELECT numero_fiche, nsf_code FROM nsf JOIN {table} USING (numero_fiche)"):
         groupes.setdefault(num, set()).add(nsf_idx[code[:2]])
 
     # intitulés et niveaux
     infos = {num: (intitule, niveau or "") for num, intitule, niveau in conn.execute(
         f"SELECT numero_fiche, intitule, COALESCE(nomenclature_europe_niveau, '') "
-        f"FROM standard WHERE numero_fiche IN ({ph})", numeros)}
+        f"FROM standard JOIN {table} USING (numero_fiche)")}
+
+    conn.execute(f"DROP TABLE {table}")
 
     certifs, exclues = [], 0
     for num in numeros:

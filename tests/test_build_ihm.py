@@ -154,6 +154,75 @@ class TestIndex(unittest.TestCase):
         c1 = next(c for c in self.index["certifs"] if c[0] == "RNCP0001")
         self.assertEqual(sorted(ids[i] for i in c1[4]), ["oral", "site_web"])
 
+    def test_domaine_id_inconnu_leve(self):
+        # competence_canonique référence un domaine_id absent de la table
+        # domaine : repli silencieux interdit, symétrique au garde-fou NSF.
+        self.conn.execute(
+            "INSERT INTO competence_canonique VALUES "
+            "('fantome', 'domaine_fantome', 'Compétence fantôme', '')")
+        with self.assertRaises(build_ihm.ErreurIHM) as ctx:
+            build_ihm.construire_index(self.conn, build_ihm.numeros_vae(self.conn))
+        msg = str(ctx.exception)
+        self.assertIn("domaine_fantome", msg)
+        self.assertIn("fantome", msg)
+
+
+def _conn_grande_echelle(n_fiches: int) -> sqlite3.Connection:
+    """Base en mémoire avec `n_fiches` fiches VAE, pour tester le passage à
+    l'échelle sans clause IN variadique (5 582 fiches en production)."""
+    conn = sqlite3.connect(":memory:")
+    conn.executescript("""
+        CREATE TABLE voixdacces (numero_fiche TEXT, si_jury TEXT);
+        CREATE TABLE standard (numero_fiche TEXT, intitule TEXT,
+                               nomenclature_europe_niveau TEXT);
+        CREATE TABLE nsf (numero_fiche TEXT, nsf_code TEXT, nsf_intitule TEXT);
+        CREATE TABLE domaine (domaine_id TEXT, libelle TEXT, ordre TEXT);
+        CREATE TABLE competence_canonique (competence_id TEXT, domaine_id TEXT,
+                               libelle TEXT, mots_cles TEXT);
+        CREATE TABLE certification_competence (numero_fiche TEXT,
+                               competence_id TEXT, domaine_id TEXT);
+    """)
+    conn.execute(
+        "INSERT INTO domaine VALUES ('numerique', 'Numérique', '1')")
+    conn.execute(
+        "INSERT INTO competence_canonique VALUES "
+        "('site_web', 'numerique', 'Créer un site web', 'site|web')")
+    numeros = [f"RNCP{90000 + i:05d}" for i in range(n_fiches)]
+    conn.executemany(
+        "INSERT INTO voixdacces VALUES (?, 'Par expérience')",
+        [(n,) for n in numeros])
+    conn.executemany(
+        "INSERT INTO standard VALUES (?, ?, 'NIV5')",
+        [(n, f"Titre {n}") for n in numeros])
+    conn.executemany(
+        "INSERT INTO nsf VALUES (?, '310', '310 : x')",
+        [(n,) for n in numeros])
+    conn.executemany(
+        "INSERT INTO certification_competence VALUES (?, 'site_web', 'numerique')",
+        [(n,) for n in numeros])
+    conn.commit()
+    return conn
+
+
+class TestIndexEchelle(unittest.TestCase):
+    def test_beaucoup_de_fiches_sans_clause_in_variadique(self):
+        """1 200 fiches, au-delà de la limite historique de 999 variables
+        SQLite. On force explicitement cette limite sur la connexion pour ne
+        pas dépendre du SQLite compilé localement (>= 3.32 admet 32766 par
+        défaut) : construire_index() doit aboutir malgré tout, preuve
+        qu'aucune requête ne passe la liste de numéros en paramètres IN (?,…)."""
+        conn = _conn_grande_echelle(1200)
+        if not hasattr(conn, "setlimit"):
+            self.skipTest(
+                "sqlite3.Connection.setlimit indisponible (Python < 3.11)")
+        conn.setlimit(sqlite3.SQLITE_LIMIT_VARIABLE_NUMBER, 999)
+
+        numeros = build_ihm.numeros_vae(conn)
+        self.assertEqual(len(numeros), 1200)
+        index, exclues = build_ihm.construire_index(conn, numeros)
+        self.assertEqual(len(index["certifs"]), 1200)
+        self.assertEqual(exclues, 0)
+
 
 if __name__ == "__main__":
     unittest.main()
