@@ -52,6 +52,7 @@
 
 <script>
 const IDX_B64 = "/*__INDEX_B64__*/";
+// DET_B64 (avec DETAIL plus bas) : pas encore consommé, réservé au panneau de fiche à venir.
 const DET_B64 = "/*__DETAIL_B64__*/";
 </script>
 <script>
@@ -60,6 +61,7 @@ const DET_B64 = "/*__DETAIL_B64__*/";
 <script>
 "use strict";
 
+// DET_B64 / DETAIL : réservés au panneau de fiche d'une tâche ultérieure, pas du code mort.
 let DATA = null, DETAIL = null;
 const coches = new Set();
 const filtres = { niveaux: null, nsf: null, seuil: 0.5 };
@@ -92,8 +94,10 @@ function etatDepuisURL() {
   const nsf = p.get("nsf");
   filtres.nsf = nsf === null ? null
     : new Set(nsf.split(",").map(Number).filter(i => i >= 0 && i < DATA.nsf.length));
-  const s = Number(p.get("seuil"));
-  filtres.seuil = Number.isFinite(s) && s >= 0 && s <= 100 ? s / 100 : 0.5;
+  const seuilBrut = p.get("seuil");
+  const s = Number(seuilBrut);
+  filtres.seuil = seuilBrut !== null && Number.isFinite(s) && s >= 0 && s <= 100
+    ? s / 100 : 0.5;
 }
 
 function ecrireURL() {
@@ -115,6 +119,8 @@ function construireArbre() {
   const metiers = document.getElementById("metiers");
   const transv = document.getElementById("transversales");
   for (const [idxDom, indices] of parDomaine) {
+    // Le drapeau transversal est porté par le domaine (DOMAINES_TRANSVERSAUX dans
+    // build_ihm.py), pas par compétence : lire la première suffit pour tout le domaine.
     const estTransv = DATA.competences[indices[0]][3] === 1;
     const d = document.createElement("details");
     d.className = "domaine";
@@ -156,7 +162,7 @@ document.getElementById("recherche").addEventListener("input", e => {
 });
 
 document.getElementById("reset").addEventListener("click", () => {
-  coches.clear(); synchroniserCases(); ecrireURL(); rendre();
+  coches.clear(); ecrireURL(); rendre();
 });
 
 // --- résultats ---
@@ -191,7 +197,7 @@ function rendre() {
       <h3><span class="taux">${Math.round(r.couverture * 100)} %</span>${esc(c[1])}</h3>
       <div class="barre">métier ${jauge(r.metier[0], r.metier[1])}</div>
       <div class="barre">transversal ${jauge(r.transv[0], r.transv[1])}</div>
-      <p class="meta">${niv} · ${esc(nsf)} ·
+      <p class="meta">${esc(niv)} · ${esc(nsf)} ·
         <a href="https://www.francecompetences.fr/recherche/rncp/${encodeURIComponent(c[0].replace(/^RNCP/, ""))}/"
            target="_blank" rel="noopener">fiche officielle</a></p>
     </article>`;
