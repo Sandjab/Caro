@@ -3,7 +3,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import build_ihm  # noqa: E402
 import sqlite3
+import tempfile
 import unittest
+from pathlib import Path
 
 # Seuil de paramètres pour détecter une clause IN variadique.
 # Les requêtes légitimes lient 0 ou 1 paramètre ; 999 est la limite historique de SQLite.
@@ -416,6 +418,50 @@ class TestCompressionInjection(unittest.TestCase):
             build_ihm.injecter(gabarit, "AAA", "BBB", matcher_dangereux)
         msg = str(ctx.exception)
         self.assertIn("</script>", msg.lower())
+
+
+class TestGenerer(unittest.TestCase):
+    def test_generation_bout_en_bout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            db = tmp / "test.sqlite3"
+            src = conn_minimale()
+            dst = sqlite3.connect(db)
+            src.backup(dst)
+            dst.close()
+
+            (tmp / "template.html").write_text(
+                'A"/*__INDEX_B64__*/"B"/*__DETAIL_B64__*/"C/*__MATCHER_JS__*/D',
+                encoding="utf-8")
+            (tmp / "matcher.js").write_text("function matcher(){return [];}",
+                                            encoding="utf-8")
+            sortie = tmp / "index.html"
+
+            n = build_ihm.generer(db, tmp / "template.html",
+                                  tmp / "matcher.js", sortie)
+            self.assertEqual(n, 2)
+
+            html = sortie.read_text(encoding="utf-8")
+            self.assertIn("function matcher(){return [];}", html)
+            for marqueur in build_ihm.MARQUEURS:
+                self.assertNotIn(marqueur, html)
+
+            # le blob d'index, extrait puis décompressé, redonne les 2 fiches
+            b64 = html.split('A"')[1].split('"B')[0]
+            index = build_ihm.decompresser(b64)
+            self.assertEqual([c[0] for c in index["certifs"]],
+                             ["RNCP0001", "RNCP0004"])
+            self.assertEqual(index["exclues"], 1)
+
+    def test_base_absente(self):
+        with self.assertRaises(build_ihm.ErreurIHM) as ctx:
+            build_ihm.generer(Path("nexiste_pas.sqlite3"), Path("t.html"),
+                              Path("m.js"), Path("o.html"))
+        self.assertIn("build_db.py", str(ctx.exception))
+
+    def test_main_retourne_1_et_affiche_l_erreur(self):
+        code = build_ihm.main(["--db", "nexiste_pas.sqlite3"])
+        self.assertEqual(code, 1)
 
 
 if __name__ == "__main__":

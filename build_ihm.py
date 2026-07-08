@@ -13,10 +13,13 @@ Exemple :
 
 from __future__ import annotations
 
+import argparse
 import base64
 import gzip
 import json
 import sqlite3
+import sys
+from pathlib import Path
 
 VOIE_VAE = "Par expérience"
 
@@ -257,3 +260,67 @@ def injecter(template: str, index_b64: str, detail_b64: str,
     html = template.replace(MARQUEURS[0], index_b64)
     html = html.replace(MARQUEURS[1], detail_b64)
     return html.replace(MARQUEURS[2], matcher_js)
+
+
+TAILLE_ALERTE = 25 * 1024 * 1024  # ~16 Mo attendus ; au-delà, quelque chose a enflé
+
+
+def generer(db: Path, gabarit: Path, moteur: Path, sortie: Path) -> int:
+    """Écrit la page autonome. Renvoie le nombre de certifications retenues."""
+    db, gabarit, moteur, sortie = Path(db), Path(gabarit), Path(moteur), Path(sortie)
+    if not db.exists():
+        raise ErreurIHM(f"base {db} absente : lancer build_db.py d'abord.")
+    if not gabarit.exists():
+        raise ErreurIHM(f"gabarit {gabarit} absent.")
+    if not moteur.exists():
+        raise ErreurIHM(f"moteur {moteur} absent.")
+
+    conn = sqlite3.connect(db)
+    try:
+        verifier_base(conn)
+        numeros = numeros_vae(conn)
+        log(f"  fiches accessibles par VAE : {len(numeros)}")
+        index, exclues = construire_index(conn, numeros)
+        if not index["certifs"]:
+            raise ErreurIHM(
+                "aucune certification VAE n'a de compétence rattachée : "
+                "le mapping taxonomie est vide.")
+        retenus = [c[0] for c in index["certifs"]]
+        log(f"  retenues : {len(retenus)} · exclues (sans compétence) : {exclues}")
+        detail = construire_detail(conn, retenus)
+    finally:
+        conn.close()
+
+    html = injecter(gabarit.read_text(encoding="utf-8"),
+                    compresser(index), compresser(detail),
+                    moteur.read_text(encoding="utf-8"))
+    sortie.parent.mkdir(parents=True, exist_ok=True)
+    sortie.write_text(html, encoding="utf-8")
+
+    taille = sortie.stat().st_size
+    log(f"  {sortie} : {taille / 1e6:.1f} Mo")
+    if taille > TAILLE_ALERTE:
+        log(f"  ATTENTION : page de {taille / 1e6:.1f} Mo, au-delà du seuil "
+            f"de {TAILLE_ALERTE / 1e6:.0f} Mo attendu.")
+    return len(retenus)
+
+
+def main(argv: "list[str] | None" = None) -> int:
+    p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    p.add_argument("--db", default="rncp.sqlite3", type=Path)
+    p.add_argument("--gabarit", default=Path("ihm") / "template.html", type=Path)
+    p.add_argument("--moteur", default=Path("ihm") / "matcher.js", type=Path)
+    p.add_argument("-o", "--sortie", default=Path("ihm") / "index.html", type=Path)
+    args = p.parse_args(argv)
+
+    log("Génération de l'IHM VAE…")
+    try:
+        generer(args.db, args.gabarit, args.moteur, args.sortie)
+    except ErreurIHM as exc:
+        print(f"ERREUR : {exc}", file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
