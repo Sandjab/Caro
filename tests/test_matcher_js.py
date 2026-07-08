@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import subprocess
 import unittest
@@ -29,8 +30,30 @@ class TestMatcherJS(unittest.TestCase):
             raise unittest.SkipTest("node absent du PATH : moteur JS non testé")
         motif = os.path.join(RACINE, "ihm", "*.test.js")
         r = subprocess.run([node, "--test", motif],
-                           capture_output=True, text=True)
+                           capture_output=True, text=True,
+                           encoding="utf-8", errors="replace")
+        # Vérifier que le script a exécuté sans erreur.
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+
+        # Vérifier qu'au moins un test a été exécuté : analyser le récapitulatif
+        # de Node pour extraire le nombre de tests (« ℹ tests N »).
+        sortie = r.stdout + r.stderr
+        match_tests = re.search(r'tests\s+(\d+)', sortie)
+
+        self.assertIsNotNone(
+            match_tests,
+            f"Aucun récapitulatif de test trouvé dans la sortie Node. "
+            f"Le motif « {motif} » n'a probablement rien trouvé. "
+            f"Sortie :\n{sortie}"
+        )
+
+        nombre_tests = int(match_tests.group(1))
+        self.assertGreater(
+            nombre_tests, 0,
+            f"Aucun test n'a été exécuté (tests trouvés : {nombre_tests}). "
+            f"Le motif « {motif} » n'a probablement rien trouvé. "
+            f"Sortie :\n{sortie}"
+        )
 
 
 if __name__ == "__main__":
