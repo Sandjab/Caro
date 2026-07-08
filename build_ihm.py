@@ -237,6 +237,23 @@ def injecter(template: str, index_b64: str, detail_b64: str,
     if manquants:
         raise ErreurIHM(
             f"gabarit corrompu : marqueurs absents {manquants!r}")
+
+    # Détecte la séquence </script> dans matcher_js. Un navigateur ferme une balise
+    # <script> dès qu'il rencontre </script> littéralement (même dans une chaîne,
+    # regex ou commentaire JS). Le parseur HTML ignorerait matcher_js après cette
+    # séquence, ce qui passe inaperçu : une page plausible mais non fonctionnelle.
+    # Mieux vaut échouer bruyamment au build. Parade en JavaScript : "</script>"
+    # devient "<" + "/script>" ou "<\/script>" (échappement).
+    if "</script>" in matcher_js.lower():
+        raise ErreurIHM(
+            "le JavaScript à injecter contient la séquence </script> (insensible "
+            "à la casse), qui fermerait la balise HTML <script> du navigateur. "
+            "En JavaScript, écrivez: \"<\" + \"/script>\" ou \"<\\/script>\".")
+
+    # L'ordre est critique : index_b64 et detail_b64 sont du base64 pur (pas de
+    # caractères spéciaux), matcher_js doit rester le dernier remplacement.
+    # Si réordonné, matcher_js pourrait contenir un marqueur qui serait rebalayé
+    # par un .replace() ultérieur.
     html = template.replace(MARQUEURS[0], index_b64)
     html = html.replace(MARQUEURS[1], detail_b64)
     return html.replace(MARQUEURS[2], matcher_js)

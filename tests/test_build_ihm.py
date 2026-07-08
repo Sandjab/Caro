@@ -395,6 +395,28 @@ class TestCompressionInjection(unittest.TestCase):
             build_ihm.injecter("gabarit sans marqueur", "A", "B", "C")
         self.assertIn("__INDEX_B64__", str(ctx.exception))
 
+    def test_sequence_fermeture_script_minuscule_leve(self):
+        """Détecte </script> dans le JavaScript injecté, casse minuscule."""
+        gabarit = ('const IDX="/*__INDEX_B64__*/";'
+                   'const DET="/*__DETAIL_B64__*/";'
+                   '<script>/*__MATCHER_JS__*/</script>')
+        matcher_dangereux = 'console.log("</script>"); // oups'
+        with self.assertRaises(build_ihm.ErreurIHM) as ctx:
+            build_ihm.injecter(gabarit, "AAA", "BBB", matcher_dangereux)
+        msg = str(ctx.exception)
+        self.assertIn("</script>", msg)
+
+    def test_sequence_fermeture_script_casse_mixte_leve(self):
+        """Détecte </Script> et autres variantes de casse."""
+        gabarit = ('const IDX="/*__INDEX_B64__*/";'
+                   'const DET="/*__DETAIL_B64__*/";'
+                   '<script>/*__MATCHER_JS__*/</script>')
+        matcher_dangereux = 'console.log("</Script>"); // casse mixte'
+        with self.assertRaises(build_ihm.ErreurIHM) as ctx:
+            build_ihm.injecter(gabarit, "AAA", "BBB", matcher_dangereux)
+        msg = str(ctx.exception)
+        self.assertIn("</script>", msg.lower())
+
 
 if __name__ == "__main__":
     unittest.main()
