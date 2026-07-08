@@ -62,6 +62,52 @@ occasionnel, embeddings + LLM, curation humaine) — `build_db.py` se contente d
 Si le répertoire est absent ou incomplet (ou avec `--no-taxonomie`), l'étape est
 proprement ignorée et la base se construit comme avant.
 
+## IHM : certifications accessibles par VAE
+
+`build_ihm.py` génère une page HTML autonome (~15,4 Mo, sans serveur ni
+dépendance) permettant de cocher ses compétences dans un arbre et de découvrir
+les certifications accessibles par validation des acquis de l'expérience,
+classées par couverture de leurs exigences.
+
+```bash
+python3 build_ihm.py                    # rncp.sqlite3 -> ihm/index.html
+python3 build_ihm.py --db autre.sqlite3 -o /tmp/vae.html
+```
+
+Prérequis : une base construite **avec** l'artefact `taxonomie/` (la vue
+`certification_competence` est nécessaire) — avec `--no-taxonomie`,
+`build_ihm.py` refuse de produire une page. Ouvrir ensuite `ihm/index.html`
+d'un double-clic.
+
+`ihm/template.html` et `ihm/matcher.js` sont versionnés ; `ihm/index.html` est
+un artefact **généré et gitignoré**, à régénérer après chaque mise à jour de la
+base ou du moteur. Le moteur de matching (`matcher.js`) est injecté verbatim
+dans la page : le code exercé par `node --test 'ihm/*.test.js'` est exactement
+celui livré au navigateur.
+
+Le classement trie par taux de couverture, puis par nombre absolu de
+compétences couvertes, puis par compétences métier — de sorte qu'une
+certification exigeant huit compétences toutes couvertes passe devant une
+certification n'en exigeant qu'une. Les compétences transversales comptent dans
+le score mais sont affichées séparément.
+
+Limites, à garder à l'esprit avant de s'appuyer sur le classement :
+
+- **408 des 5 582 certifications accessibles par VAE n'ont aucune compétence
+  rattachée** et ne sont donc pas listées (la page l'indique). Les 196 fiches
+  VAE sans niveau de diplôme renseigné en font toutes partie — aucune n'a de
+  compétence rattachée — ce qui explique qu'aucune entrée « niveau non
+  renseigné » n'apparaisse dans le filtre par niveau.
+- Le taux de couverture est un signal **grossier**, pas une mesure fine : la
+  médiane est de 4 compétences exigées par certification, donc un « 75 % »
+  signifie souvent « 3 sur 4 ».
+- Le mapping bloc → compétence porte environ **1,0 % d'erreur franche** (mesuré
+  par un juge indépendant, IC 95 % ± 0,8) : suffisant pour orienter,
+  insuffisant pour décider seul d'une démarche VAE.
+- **La recevabilité réelle d'une VAE n'est pas modélisée** : ni durée
+  d'expérience, ni conditions de recevabilité, ni jury. L'outil oriente vers
+  des candidats plausibles, il ne présume d'aucune décision.
+
 ## Schéma de la base
 
 - **Une table par CSV de l'export** (noms normalisés en minuscules sans accents) :
