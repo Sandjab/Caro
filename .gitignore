@@ -220,3 +220,6 @@ __marimo__/
 # Données France compétences (téléchargées) et base construite
 data/
 *.sqlite3
+
+# IHM générée (artefact, ~16 Mo)
+ihm/index.html
