@@ -7,6 +7,30 @@ import unittest
 RACINE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def _nb_tests_executes(sortie: str) -> int | None:
+    """Extrait le nombre de tests exécutés du récapitulatif de Node.
+
+    Node imprime le récapitulatif en début de ligne, précédé d'un marqueur
+    non-alphanumérique (« ℹ » pour reporter par défaut, « # » pour TAP).
+    Ancre la regex sur le début de ligne pour éviter de capturer les nombres
+    provenant des lignes de résultats individuels (par ex. « ✔ mes tests 0 »).
+
+    Args:
+        sortie: Sortie combinée (stdout + stderr) de Node.
+
+    Returns:
+        Nombre de tests exécutés, ou None si le récapitulatif est introuvable.
+    """
+    # Ancre sur le début de ligne (re.MULTILINE) en tolérant un préfixe
+    # de marqueur non-alphanumérique ([^a-zA-Z0-9]*), suivi du mot "tests",
+    # espaces, et le nombre jusqu'à la fin de ligne ($).
+    # Évite de dépendre du caractère non-ASCII ℹ.
+    match = re.search(r'^[^a-zA-Z0-9]*tests\s+(\d+)$', sortie, re.MULTILINE)
+    if match:
+        return int(match.group(1))
+    return None
+
+
 class TestMatcherJS(unittest.TestCase):
     """Délègue à `node --test`. Node n'est pas une dépendance dure du dépôt :
     absent, la suite est ignorée — comme pour FTS5 dans build_db.py.
@@ -36,23 +60,68 @@ class TestMatcherJS(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
 
         # Vérifier qu'au moins un test a été exécuté : analyser le récapitulatif
-        # de Node pour extraire le nombre de tests (« ℹ tests N »).
+        # de Node pour extraire le nombre de tests.
         sortie = r.stdout + r.stderr
-        match_tests = re.search(r'tests\s+(\d+)', sortie)
+        nombre_tests = _nb_tests_executes(sortie)
 
         self.assertIsNotNone(
-            match_tests,
+            nombre_tests,
             f"Aucun récapitulatif de test trouvé dans la sortie Node. "
             f"Le motif « {motif} » n'a probablement rien trouvé. "
             f"Sortie :\n{sortie}"
         )
 
-        nombre_tests = int(match_tests.group(1))
         self.assertGreater(
             nombre_tests, 0,
             f"Aucun test n'a été exécuté (tests trouvés : {nombre_tests}). "
             f"Le motif « {motif} » n'a probablement rien trouvé. "
             f"Sortie :\n{sortie}"
+        )
+
+    def test_nb_tests_executes_regression(self):
+        """Teste l'extraction du nombre de tests contre les faux positifs.
+
+        Régression : ligne de résultat individuel « ✔ mes tests 0 » ne doit
+        pas être confondue avec le récapitulatif « ℹ tests 1 ».
+        """
+        # Cas 1 : résultat individuel suivi du récapitulatif (faux positif
+        # potentiel de l'ancienne regex).
+        sortie_avec_faux_positif = (
+            "✔ mes tests 0 passent toujours (0.4779ms)\n"
+            "ℹ tests 1"
+        )
+        self.assertEqual(
+            _nb_tests_executes(sortie_avec_faux_positif), 1,
+            "Doit ignorer la ligne de résultat « mes tests 0 » "
+            "et extraire le récapitulatif « tests 1 »"
+        )
+
+        # Cas 2 : récapitulatif seul avec zéro test.
+        sortie_zero = "ℹ tests 0"
+        self.assertEqual(
+            _nb_tests_executes(sortie_zero), 0,
+            "Doit extraire 0 du récapitulatif « tests 0 »"
+        )
+
+        # Cas 3 : récapitulatif avec marqueur TAP « # ».
+        sortie_tap = "# tests 2"
+        self.assertEqual(
+            _nb_tests_executes(sortie_tap), 2,
+            "Doit extraire le nombre du récapitulatif avec marqueur TAP"
+        )
+
+        # Cas 4 : sans préfixe marqueur (edge case edge valide).
+        sortie_pas_marqueur = "tests 5"
+        self.assertEqual(
+            _nb_tests_executes(sortie_pas_marqueur), 5,
+            "Doit extraire le nombre même sans marqueur de début"
+        )
+
+        # Cas 5 : pas de récapitulatif.
+        sortie_vide = "✔ un test (1.2ms)"
+        self.assertIsNone(
+            _nb_tests_executes(sortie_vide),
+            "Doit retourner None si le récapitulatif est absent"
         )
 
 
