@@ -1,16 +1,52 @@
 # Caro
 
-**C**ompétences **A**cquises, **R**econnaissance **O**fficielle — et d'abord le
-prénom de celle qui a la première exprimé le besoin ; l'acronyme est venu après.
+**C**ompétences **A**cquises, **R**econnaissance **O**fficielle (mais d'abord
+le prénom de celle qui a la première exprimé le besoin ; l'acronyme est venu
+après 😏).
 
-France compétences publie en données ouvertes l'intégralité du Répertoire
-national des certifications professionnelles (**RNCP**) et du Répertoire
-spécifique (**RS**) : environ 20 000 fiches, dont 7 500 actives, sous forme
-d'exports CSV et XML régénérés quotidiennement sur
+## Pourquoi Caro
+
+L'État donne déjà accès à toutes les certifications professionnelles : le site
+de France compétences propose
+[une recherche dans les répertoires](https://www.francecompetences.fr/recherche-resultats/?types=certification&search=&pageType=certification&active=1)
+— le Répertoire national des certifications professionnelles (**RNCP**) et le
+Répertoire spécifique (**RS**). Chaque fiche y détaille ses « voies d'accès »,
+dont la voie **« par expérience »** : la validation des acquis de l'expérience
+(VAE), qui permet d'obtenir une certification en faisant reconnaître ce que
+l'on a appris en travaillant, sans suivre la formation correspondante.
+
+En pratique, cette recherche se prête mal à la question qui nous occupe —
+« qu'est-ce que mon expérience me permettrait d'obtenir ? » (constats de
+juillet 2026) :
+
+- **aucun filtre VAE** : l'accessibilité par expérience n'apparaît qu'à
+  l'intérieur de chaque fiche ; pour savoir si une certification s'obtient
+  par VAE, il faut l'ouvrir, une par une ;
+- les résultats arrivent **dix par page** — plus de 30 000 fiches au compteur
+  avant filtrage, et chaque page de résultats pèse plus de 4 Mo ;
+- les filtres sont **administratifs** (certificateur, codes NSF / ROME /
+  Formacode, niveau, état de la fiche) : aucun ne parle le langage des
+  compétences ;
+- c'est une recherche **par mots-clés** : elle retrouve une certification
+  dont on connaît déjà le nom, elle ne fait pas découvrir celles qu'on
+  pourrait viser.
+
+Le portail officiel [vae.gouv.fr](https://vae.gouv.fr) cible, lui, la VAE,
+mais procède aussi par mots-clés : il suppose qu'on sait déjà quel diplôme
+on vise.
+
+Reste l'alternative : France compétences publie l'intégralité des répertoires
+en **données ouvertes** — environ 20 000 fiches, dont 7 500 actives, sous
+forme d'exports CSV et XML régénérés quotidiennement sur
 [data.gouv.fr](https://www.data.gouv.fr/datasets/repertoire-national-des-certifications-professionnelles-et-repertoire-specifique).
-Ces exports sont exhaustifs mais peu exploitables tels quels : des dizaines de
-fichiers à croiser, du texte libre, aucun moyen simple de répondre à une
-question comme « quelles certifications mon expérience couvre-t-elle ? ».
+Exhaustifs, mais bruts : des dizaines de fichiers à croiser, et surtout des
+compétences en **texte libre**. Chaque certificateur rédige ses blocs de
+compétences comme il l'entend — sa « liste de courses » —, si bien que les
+mêmes savoir-faire reviennent sous des milliers de formulations : les quelque
+19 400 libellés de blocs distincts des fiches actives se ramènent à
+227 compétences canoniques (voir la taxonomie plus bas). Aucun moyen simple,
+là non plus, de répondre à « quelles certifications mon expérience
+couvre-t-elle ? ».
 
 Caro transforme ces exports en deux choses :
 
@@ -54,9 +90,11 @@ certification par un juge indépendant (modèle différent, posture de
 réfutation) qui mesure **environ 1,0 % d'erreur franche** (IC 95 % ± 0,8) sur
 le mapping livré. La construction de la base se contente de **lire** cet
 artefact — elle reste déterministe et sans dépendance. Les blocs que
-l'artefact ne couvre pas passent par un repli lexical simple ; ceux qui restent
-trop éloignés de toute compétence demeurent non classés plutôt que rattachés
-de force. Si l'artefact est absent, la base se construit sans la taxonomie.
+l'artefact ne couvre pas passent par un repli lexical simple : une **similarité
+de Jaccard** — taille de l'intersection rapportée à celle de l'union — entre
+les mots du bloc et les mots-clés de chaque compétence canonique, la meilleure
+l'emportant si elle dépasse un seuil ; les blocs qui restent trop éloignés de
+toute compétence demeurent non classés plutôt que rattachés de force. Si l'artefact est absent, la base se construit sans la taxonomie.
 
 ### La page de recherche VAE
 
