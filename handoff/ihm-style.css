@@ -174,9 +174,13 @@ main { flex: 1; display: flex; min-height: 0; }
   border-radius: 12px; font-size: 13px;
 }
 #filtres label { display: inline-flex; align-items: center; gap: 7px; color: #3c382f; }
+/* Padding vertical nul : sur un <select multiple>, le navigateur peint les
+   options dans la padding-box. Le moindre padding haut/bas y laisse dépasser
+   une bande de l'option suivante, coupée en deux (size=3 affichait 3,63
+   options). Le padding horizontal, lui, est sans effet sur ce rognage. */
 #filtres select {
   min-width: 150px; font: inherit; font-size: 13px;
-  padding: 5px 8px; border: 1px solid var(--field-line);
+  padding: 0 8px; border: 1px solid var(--field-line);
   border-radius: 8px; background: var(--field); color: var(--ink);
 }
 #filtres input[type=range] { accent-color: var(--acc); }

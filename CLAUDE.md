@@ -85,6 +85,21 @@ puis vérifier le contenu de la base par requêtes SQL (filtrage actif, encodage
   Artefact absent/incomplet ou `--no-taxonomie` → dégradation gracieuse, comme pour
   FTS5.
 
+## Interface / design
+
+- **Tout le style vit dans le bloc `<style>` de `ihm/template.html`.** Sa source de
+  vérité est `handoff/ihm-style.css` : les deux doivent rester identiques (tokens,
+  typographie et règles détaillées y sont documentés, ainsi que dans
+  `handoff/CLAUDE-design-addendum.md`). Modifier le style, c'est modifier les deux.
+- **Ne jamais éditer `ihm/index.html`** : artefact généré et gitignoré. Après toute
+  modification du gabarit ou du moteur, régénérer (`python3 build_ihm.py`) ; publier
+  en copiant le fichier obtenu sur la branche `gh-pages`.
+- **Un seul accent** : le vert `--acc`. Ne pas introduire d'autre couleur vive — le
+  taux de couverture est le chiffre héros de chaque carte. Jauge métier en `--acc`,
+  jauge transversale en `--transv` (beige) : elles ne doivent pas se ressembler.
+- Toujours passer par les variables CSS de `:root`, jamais par une valeur en dur.
+- Rester **sans dépendance** : CSS écrit à la main, pas de framework ni de build front.
+
 ## Contraintes d'environnement
 
 Dans l'environnement Claude Code distant, la politique réseau **bloque
