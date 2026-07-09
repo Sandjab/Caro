@@ -74,6 +74,7 @@ def conn_minimale():
         ("RNCP0001", "objectifs_contexte", "Objectifs du dev web."),
         ("RNCP0001", "activites_visees", "Activités du dev web."),
         ("RNCP0001", "capacites_attestees", "NE DOIT PAS ÊTRE EMBARQUÉ"),
+        ("RNCP0002", "capacites_attestees", "Capacités de la fiche 2."),
         ("RNCP0004", "objectifs_contexte", "Objectifs 4."),
     ])
     conn.executemany("INSERT INTO domaine VALUES (?,?,?)", [
@@ -132,6 +133,16 @@ class TestIndex(unittest.TestCase):
         self.assertEqual(numeros, ["RNCP0001", "RNCP0004"])
         self.assertEqual(self.exclues, 1)
         self.assertEqual(self.index["exclues"], 1)
+
+    def test_fiche_sans_competence_listee_pour_consultation(self):
+        # Exclue du matching (pas d'exigences connues) mais pas invisible :
+        # l'IHM la présente dans une section séparée, avec niveau et NSF.
+        self.assertEqual(self.index["sans_comp"],
+                         [["RNCP0002", "Fiche sans compétence", "NIV5",
+                           [self._indice_nsf("31")]]])
+
+    def _indice_nsf(self, groupe):
+        return [n[0] for n in self.index["nsf"]].index(groupe)
 
     def test_fiche_hors_vae_absente(self):
         numeros = [c[0] for c in self.index["certifs"]]
@@ -292,6 +303,18 @@ class TestDetail(unittest.TestCase):
     def test_capacites_attestees_exclu(self):
         aplati = repr(self.detail)
         self.assertNotIn("NE DOIT PAS ÊTRE EMBARQUÉ", aplati)
+
+    def test_capacites_embarquees_pour_les_fiches_sans_bloc(self):
+        # RNCP0002 (sans compétence rattachée) : ses capacités attestées sont
+        # sa seule matière consultable, elles sont embarquées sous "c" —
+        # sans ouvrir la porte à celles des fiches à blocs (RNCP0001).
+        conn = conn_minimale()
+        self.addCleanup(conn.close)
+        detail = build_ihm.construire_detail(
+            conn, self.numeros + ["RNCP0002"], capacites=["RNCP0002"])
+        self.assertEqual(detail["RNCP0002"]["c"], "Capacités de la fiche 2.")
+        self.assertNotIn("c", detail["RNCP0001"])
+        self.assertNotIn("NE DOIT PAS ÊTRE EMBARQUÉ", repr(detail))
 
     def test_blocs_tries_par_code(self):
         blocs = self.detail["RNCP0001"]["b"]
@@ -488,6 +511,14 @@ class TestGenerer(unittest.TestCase):
             self.assertEqual([c[0] for c in index["certifs"]],
                              ["RNCP0001", "RNCP0004"])
             self.assertEqual(index["exclues"], 1)
+            self.assertEqual([c[0] for c in index["sans_comp"]], ["RNCP0002"])
+
+            # le blob de détail couvre aussi la fiche sans compétence, avec
+            # ses capacités attestées (seule matière consultable)
+            b64_detail = html.split('"B"')[1].split('"C')[0]
+            detail = build_ihm.decompresser(b64_detail)
+            self.assertEqual(detail["RNCP0002"]["c"], "Capacités de la fiche 2.")
+            self.assertNotIn("c", detail["RNCP0001"])
 
     def test_echec_ecriture_ne_laisse_aucun_fichier_partiel(self):
         """Constat 1 : si l'écriture de la sortie échoue à mi-course (disque

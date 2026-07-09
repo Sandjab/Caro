@@ -19,7 +19,6 @@
   .feuille { display:block; padding:.15rem 0 .15rem 1.25rem; }
   #transversales { margin-top:1rem; padding-top:.5rem;
                    border-top:1px dashed var(--bord); opacity:.75; }
-  #pied { font-size:.85rem; color:var(--gris); padding:.5rem 0; }
   .carte { border:1px solid var(--bord); border-radius:6px; padding:.6rem .8rem;
            margin-bottom:.6rem; }
   .carte h3 { margin:0 0 .3rem; font-size:1rem; }
@@ -29,6 +28,9 @@
   .jauge > i { display:block; height:100%; background:var(--acc); border-radius:4px; }
   .meta { font-size:.8rem; color:var(--gris); margin-top:.3rem; }
   .vide { color:var(--gris); padding:2rem 0; }
+  #nonpos { margin-top:1rem; padding-top:.5rem; border-top:1px dashed var(--bord); }
+  #nonpos > summary { cursor:pointer; font-size:.85rem; color:var(--gris); }
+  #nonposFiltre { width:100%; max-width:420px; padding:.4rem; margin:.5rem 0; }
   #panneau { position:fixed; top:0; right:0; width:min(560px,90vw); height:100vh;
              background:#fff; border-left:1px solid var(--bord); overflow-y:auto;
              padding:1rem 1.25rem; box-shadow:-4px 0 16px rgba(0,0,0,.08);
@@ -58,7 +60,15 @@
     <h1 id="titre">Chargement…</h1>
     <div id="filtres"></div>
     <div id="resultats"></div>
-    <p id="pied"></p>
+    <details id="nonpos" hidden>
+      <summary id="nonposTitre"></summary>
+      <p class="meta">Ces fiches n'ont aucun bloc de compétences rattachable :
+        impossible de calculer une couverture. Elles restent consultables
+        ci-dessous, notamment via leurs capacités attestées.</p>
+      <input id="nonposFiltre" type="search" placeholder="filtrer par intitulé…"
+             aria-label="Filtrer les certifications non positionnables">
+      <div id="nonposListe"></div>
+    </details>
   </section>
   <aside id="panneau" aria-hidden="true" inert>
     <button id="fermer" type="button" aria-label="Fermer">×</button>
@@ -220,6 +230,10 @@ function jauge(n, total) {
 
 function rendre() {
   synchroniserCases();
+  // La section des non positionnables suit les filtres niveau/domaine : la
+  // rafraîchir ici (et pas en fin de fonction, coupée par les retours
+  // anticipés « aucune coche » / « aucun résultat » ci-dessous).
+  if (document.getElementById("nonpos").open) rendreNonPos();
   const res = matcher(DATA, coches, filtres);
   document.getElementById("titre").textContent =
     res.length + " certification" + (res.length > 1 ? "s" : "") +
@@ -246,7 +260,7 @@ function rendre() {
       <div class="barre">transversal ${jauge(r.transv[0], r.transv[1])}</div>
       <p class="meta">${esc(niv)} · ${esc(nsf)} ·
         <button type="button" class="voir" data-num="${esc(c[0])}">voir la fiche</button> ·
-        <a href="https://www.francecompetences.fr/recherche/rncp/${encodeURIComponent(c[0].replace(/^RNCP/, ""))}/"
+        <a href="${lienOfficiel(c[0])}"
            target="_blank" rel="noopener">fiche officielle</a></p>
     </article>`;
   }).join("") + (res.length > 200
@@ -255,9 +269,61 @@ function rendre() {
     b.addEventListener("click", () => ouvrirFiche(b.dataset.num, b)));
 }
 
+// --- certifications non positionnables (aucune compétence rattachée) ---
+// Suivent les filtres niveau/domaine (passeFiltres, le même que le matching ;
+// le seuil de couverture ne s'applique pas : pas de couverture calculable),
+// plus un filtre local sur l'intitulé. Cartes construites par méthodes DOM.
+function carteNonPos(c) {
+  const art = document.createElement("article");
+  art.className = "carte";
+  const h3 = document.createElement("h3");
+  h3.textContent = c[1];
+  const meta = document.createElement("p");
+  meta.className = "meta";
+  const nsf = c[3].map(i => DATA.nsf[i][1]).join(", ") || "—";
+  meta.append((c[2] || "niveau non renseigné") + " · " + nsf + " · ");
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.textContent = "voir la fiche";
+  btn.addEventListener("click", () => ouvrirFiche(c[0], btn));
+  const lien = document.createElement("a");
+  lien.href = lienOfficiel(c[0]);
+  lien.target = "_blank";
+  lien.rel = "noopener";
+  lien.textContent = "fiche officielle";
+  meta.append(btn, " · ", lien);
+  art.append(h3, meta);
+  return art;
+}
+
+function rendreNonPos() {
+  const zone = document.getElementById("nonposListe");
+  const q = document.getElementById("nonposFiltre").value.trim().toLowerCase();
+  const liste = DATA.sans_comp
+    .filter(c => passeFiltres(c, filtres) &&
+      (!q || c[1].toLowerCase().includes(q)))
+    .sort((a, b) => a[1].localeCompare(b[1], "fr"));
+  if (liste.length === 0) {
+    const p = document.createElement("p");
+    p.className = "vide";
+    p.textContent = "Aucune fiche ne correspond.";
+    zone.replaceChildren(p);
+    return;
+  }
+  zone.replaceChildren(...liste.map(carteNonPos));
+}
+
 function esc(s) {
   return String(s).replace(/[&<>"]/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
+// Le préfixe du numéro décide du répertoire sur le site officiel : RS5367 et
+// RNCP5367 sont deux certifications différentes, /recherche/rs/ ou /rncp/.
+function lienOfficiel(numero) {
+  const repertoire = numero.startsWith("RS") ? "rs" : "rncp";
+  return "https://www.francecompetences.fr/recherche/" + repertoire + "/" +
+    encodeURIComponent(numero.replace(/^(RNCP|RS)/, "")) + "/";
 }
 
 // --- filtres ---
@@ -334,9 +400,11 @@ async function ouvrirFiche(numero, declencheur) {
   panneau.setAttribute("aria-hidden", "false");
   document.getElementById("fermer").focus();
 
-  const c = DATA.certifs.find(x => x[0] === numero);
-  const lien = "https://www.francecompetences.fr/recherche/rncp/" +
-    encodeURIComponent(numero.replace(/^RNCP/, "")) + "/";
+  // Les 4 premières positions (numéro, intitulé, niveau, groupes NSF) sont
+  // communes aux certifs positionnées et aux non positionnables.
+  const c = DATA.certifs.find(x => x[0] === numero) ||
+    DATA.sans_comp.find(x => x[0] === numero);
+  const lien = lienOfficiel(numero);
 
   if (DETAIL === null) {
     zone.innerHTML = "<p>Chargement du détail (une seule fois)…</p>";
@@ -370,9 +438,11 @@ async function ouvrirFiche(numero, declencheur) {
       <a href="${lien}" target="_blank" rel="noopener">fiche officielle</a></p>
     ${d.o ? `<h3>Objectifs et contexte</h3><p>${esc(d.o)}</p>` : ""}
     ${d.a ? `<h3>Activités visées</h3><p>${esc(d.a)}</p>` : ""}
-    <h3>Blocs de compétences</h3>
-    ${d.b.map(b => `<div class="bloc"><strong>${esc(b[1])}</strong>
-      <p>${surligner(b[2], mots)}</p></div>`).join("")}`;
+    ${d.c ? `<h3>Capacités attestées</h3><p>${esc(d.c)}</p>` : ""}
+    ${d.b.length ? `<h3>Blocs de compétences</h3>` +
+      d.b.map(b => `<div class="bloc"><strong>${esc(b[1])}</strong>
+      <p>${surligner(b[2], mots)}</p></div>`).join("")
+      : `<p class="meta">Aucun bloc de compétences sur cette fiche.</p>`}`;
 }
 
 // --- démarrage ---
@@ -391,9 +461,16 @@ async function ouvrirFiche(numero, declencheur) {
   construireArbre();
   etatDepuisURL();
   construireFiltres();
-  document.getElementById("pied").textContent =
-    DATA.exclues + " certifications accessibles par VAE ne sont pas listées : " +
-    "leurs blocs de compétences n'ont pas pu être rattachés.";
+  const np = document.getElementById("nonpos");
+  if (DATA.sans_comp.length) {
+    np.hidden = false;
+    document.getElementById("nonposTitre").textContent =
+      DATA.sans_comp.length + " certifications accessibles par VAE ne " +
+      "peuvent pas être positionnées — cliquer pour les consulter";
+    np.addEventListener("toggle", () => { if (np.open) rendreNonPos(); });
+    document.getElementById("nonposFiltre")
+      .addEventListener("input", rendreNonPos);
+  }
   rendre();
   window.addEventListener("hashchange", () => {
     etatDepuisURL(); synchroniserFiltres(); rendre();

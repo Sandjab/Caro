@@ -36,7 +36,7 @@ mais procède aussi par mots-clés : il suppose qu'on sait déjà quel diplôme
 on vise.
 
 Reste l'alternative : France compétences publie l'intégralité des répertoires
-en **données ouvertes** — environ 20 000 fiches, dont 7 500 actives, sous
+en **données ouvertes** — environ 30 000 fiches, dont 7 000 actives, sous
 forme d'exports CSV et XML régénérés quotidiennement sur
 [data.gouv.fr](https://www.data.gouv.fr/datasets/repertoire-national-des-certifications-professionnelles-et-repertoire-specifique).
 Exhaustifs, mais bruts : des dizaines de fichiers à croiser, et surtout des
@@ -153,10 +153,14 @@ au texte de présentation et aux blocs de compétences officiels de la fiche.
 
 Limites à connaître avant de s'appuyer sur le classement :
 
-- **408 des 5 582 certifications accessibles par VAE n'ont aucune compétence
-  rattachée** et ne sont donc pas listées (la page l'indique). Les 196 fiches
-  VAE sans niveau de diplôme renseigné en font toutes partie, ce qui explique
-  qu'aucune entrée « niveau non renseigné » n'apparaisse dans le filtre.
+- **414 des 5 591 certifications accessibles par VAE n'ont aucune compétence
+  rattachée** (chiffres de juillet 2026 ; pour l'essentiel, des fiches sans
+  bloc de compétences dans les exports). Impossible de calculer leur
+  couverture : elles ne participent pas au classement, mais restent
+  consultables dans une section dédiée sous les résultats, notamment via
+  leurs capacités attestées. Les 196 fiches VAE sans niveau de diplôme
+  renseigné en font toutes partie, ce qui explique qu'aucune entrée
+  « niveau non renseigné » n'apparaisse dans le filtre.
 - Le taux de couverture est un signal **grossier** : la médiane est de
   4 compétences exigées par certification, donc un « 75 % » signifie souvent
   « 3 sur 4 ».

@@ -113,10 +113,11 @@ def _table_temp_numeros(conn: sqlite3.Connection, numeros: list[str]) -> str:
 
 def construire_index(conn: sqlite3.Connection,
                      numeros: list[str]) -> "tuple[dict, int]":
-    """Construit l'index compact. Renvoie (index, nombre de fiches exclues).
+    """Construit l'index compact. Renvoie (index, nombre de fiches sans compétence).
 
-    Une fiche VAE sans aucune compétence rattachée est exclue : on ne peut pas
-    classer par couverture ce dont on ignore les exigences.
+    Une fiche VAE sans aucune compétence rattachée ne peut pas être classée
+    par couverture (on ignore ses exigences) : elle est écartée du matching
+    mais listée dans `sans_comp` pour rester consultable dans la page.
     """
     table = _table_temp_numeros(conn, numeros)
 
@@ -181,29 +182,35 @@ def construire_index(conn: sqlite3.Connection,
 
     conn.execute(f"DROP TABLE {table}")
 
-    certifs, exclues = [], 0
+    certifs, sans_comp = [], []
     for num in numeros:
         comps = exig.get(num)
-        if not comps:
-            exclues += 1
-            continue
         intitule, niveau = infos.get(num, (num, ""))
+        if not comps:
+            sans_comp.append([num, intitule, niveau,
+                              sorted(groupes.get(num, set()))])
+            continue
         certifs.append([num, intitule, niveau,
                         sorted(groupes.get(num, set())), sorted(comps)])
 
     index = {"domaines": domaines, "competences": competences,
-             "nsf": nsf, "certifs": certifs, "exclues": exclues}
-    return index, exclues
+             "nsf": nsf, "certifs": certifs, "sans_comp": sans_comp,
+             "exclues": len(sans_comp)}
+    return index, len(sans_comp)
 
 
 CHAMPS_DETAIL = {"objectifs_contexte": "o", "activites_visees": "a"}
 
 
-def construire_detail(conn: sqlite3.Connection, numeros: list[str]) -> dict:
+def construire_detail(conn: sqlite3.Connection, numeros: list[str],
+                      capacites: "list[str] | tuple" = ()) -> dict:
     """Texte de présentation et blocs de compétences, par numéro de fiche.
 
-    capacites_attestees n'est pas embarqué : ce champ redit, réagencé, le
-    contenu des liste_competences des blocs (27 Mo bruts pour rien).
+    capacites_attestees n'est pas embarqué en général : ce champ redit,
+    réagencé, le contenu des liste_competences des blocs (27 Mo bruts pour
+    rien). Exception, `capacites` : les fiches sans bloc de compétences,
+    où ce texte ne fait doublon avec rien — il y est embarqué sous la
+    clé "c" (chaque numéro doit aussi figurer dans `numeros`).
     """
     table = _table_temp_numeros(conn, numeros)
     detail: dict[str, dict] = {n: {"o": "", "a": "", "b": []} for n in numeros}
@@ -224,6 +231,17 @@ def construire_detail(conn: sqlite3.Connection, numeros: list[str]) -> dict:
         detail[num]["b"].append([code, libelle, comps])
 
     conn.execute(f"DROP TABLE {table}")
+
+    if capacites:
+        for num in capacites:
+            detail[num]["c"] = ""
+        table = _table_temp_numeros(conn, list(capacites))
+        for num, contenu in conn.execute(
+                f"SELECT numero_fiche, contenu FROM fiche_texte "
+                f"JOIN {table} USING (numero_fiche) "
+                f"WHERE champ = 'capacites_attestees'"):
+            detail[num]["c"] = contenu or ""
+        conn.execute(f"DROP TABLE {table}")
     return detail
 
 
@@ -294,8 +312,10 @@ def generer(db: Path, gabarit: Path, moteur: Path, sortie: Path) -> int:
                 "aucune certification VAE n'a de compétence rattachée : "
                 "le mapping taxonomie est vide.")
         retenus = [c[0] for c in index["certifs"]]
-        log(f"  retenues : {len(retenus)} · exclues (sans compétence) : {exclues}")
-        detail = construire_detail(conn, retenus)
+        sans_comp = [c[0] for c in index["sans_comp"]]
+        log(f"  retenues : {len(retenus)} · non positionnables "
+            f"(sans compétence, consultables) : {exclues}")
+        detail = construire_detail(conn, retenus + sans_comp, capacites=sans_comp)
     finally:
         conn.close()
 
