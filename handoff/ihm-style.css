@@ -1,0 +1,282 @@
+/* ============================================================
+   Caro — feuille de style de l'interface VAE
+   À coller dans le bloc <style> de ihm/template.html.
+   Ne PAS éditer ihm/index.html (généré, gitignoré) :
+   régénérer avec `python3 build_ihm.py` après toute modif.
+   Mappe les sélecteurs existants du template (#arbre, .carte,
+   .taux, .jauge, #panneau, #filtres…). Aucune classe nouvelle
+   requise ; fonctionne avec le DOM actuel.
+   ============================================================ */
+
+/* --- Tokens du design system ---------------------------------
+   Les anciens noms (--bord, --gris, --fond, --acc) sont conservés
+   en alias pour ne rien casser dans le HTML/JS existant.        */
+:root {
+  --canvas:      #faf7f2;   /* fond papier chaud            */
+  --surface:     #ffffff;   /* cartes, panneaux             */
+  --ink:         #1b1a17;   /* texte principal              */
+  --muted:       #6f685c;   /* texte secondaire             */
+  --faint:       #a39a8a;   /* labels, compteurs discrets   */
+  --line:        #e7e1d7;   /* bordures                     */
+  --line-soft:   #f0ece3;   /* séparateurs internes         */
+  --field:       #faf7f2;   /* fond des champs de saisie    */
+  --field-line:  #e0d9cd;   /* bordure des champs           */
+  --acc:         #0f6d5f;   /* vert accent (couverture)     */
+  --acc-ink:     #0b5346;   /* vert liens                   */
+  --acc-track:   #eee7db;   /* piste des jauges             */
+  --transv:      #b7a98c;   /* jauge transversale (beige)   */
+  --mark:        #ffe39e;   /* surlignage dans les fiches   */
+
+  /* alias de compatibilité (ancien nommage du template) */
+  --bord: var(--line);
+  --gris: var(--muted);
+  --fond: var(--canvas);
+  --acc-old: var(--acc);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font: 14.5px/1.5 "Public Sans", system-ui, -apple-system, sans-serif;
+  color: var(--ink);
+  background: var(--canvas);
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--mark); }
+a { color: var(--acc-ink); text-decoration: none; }
+a:hover { color: var(--acc); text-decoration: underline; }
+
+h1, h2, h3 { font-family: "Spectral", Georgia, serif; letter-spacing: -0.01em; }
+
+/* --- Bandeau d'erreur ---------------------------------------- */
+#erreur {
+  display: none;
+  padding: .85rem 1.25rem;
+  background: #fbeae4;
+  border-bottom: 2px solid #b4472c;
+  color: #7a2c19;
+  font-size: 13.5px;
+}
+
+/* --- En-tête -------------------------------------------------- */
+.caro-header {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+  padding: 14px 26px;
+  background: var(--canvas);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.caro-header .marque {
+  font-family: "Spectral", serif;
+  font-weight: 700;
+  font-size: 26px;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+.caro-header .marque::after {
+  content: "";
+  display: inline-block;
+  width: 7px; height: 7px;
+  margin-left: 9px;
+  border-radius: 50%;
+  background: var(--acc);
+  vertical-align: middle;
+}
+.caro-header .baseline {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--muted);
+  max-width: 640px;
+  line-height: 1.4;
+}
+.caro-header .baseline strong { color: var(--ink); font-weight: 600; }
+.caro-header .source { margin-left: auto; font-size: 12.5px; color: var(--muted); }
+
+/* --- Structure ----------------------------------------------- */
+/* body en colonne pour loger l'en-tête au-dessus du <main> */
+body { display: flex; flex-direction: column; height: 100vh; }
+main { flex: 1; display: flex; min-height: 0; }
+
+/* --- Colonne gauche : arbre des compétences ------------------ */
+#arbre {
+  width: 348px; flex-shrink: 0;
+  overflow-y: auto;
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+  padding: 18px 18px 40px;
+}
+#recherche {
+  width: 100%;
+  padding: 9px 12px;
+  margin-bottom: 20px;
+  font: inherit; font-size: 13.5px;
+  border: 1px solid var(--field-line);
+  border-radius: 9px;
+  background: var(--field);
+  color: var(--ink);
+  outline: none;
+}
+#recherche:focus { border-color: var(--acc); background: var(--surface); }
+
+.domaine { margin-bottom: 2px; }
+.domaine > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex; align-items: center; gap: 9px;
+  padding: 7px 8px;
+  border-radius: 8px;
+  font-weight: 600; font-size: 14px; color: var(--ink);
+}
+.domaine > summary::-webkit-details-marker { display: none; }
+.domaine > summary:hover { background: #f6f2ea; }
+.domaine > summary input[type=checkbox],
+.feuille input[type=checkbox] {
+  width: 16px; height: 16px;
+  accent-color: var(--acc);   /* coche ET tiret (indeterminate) en vert */
+  cursor: pointer;
+  margin: 0;
+}
+.feuille {
+  display: flex; align-items: center; gap: 9px;
+  padding: 5px 8px 5px 33px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px; color: #3c382f;
+}
+.feuille:hover { background: #f6f2ea; }
+
+#transversales {
+  margin-top: 18px; padding-top: 14px;
+  border-top: 1px dashed var(--field-line);
+}
+#transversales .feuille { color: var(--muted); padding-left: 8px; }
+
+#compteur { font-size: 12.5px; color: var(--muted); margin: 22px 0 0; font-variant-numeric: tabular-nums; }
+#reset {
+  font: inherit; font-size: 12.5px; color: var(--muted);
+  background: none; border: 1px solid var(--field-line);
+  border-radius: 8px; padding: 5px 11px; cursor: pointer;
+  margin-top: 8px;
+}
+#reset:hover { border-color: #c9bfad; color: var(--ink); }
+
+/* --- Colonne droite : résultats ------------------------------ */
+#droite { flex: 1; min-width: 0; overflow-y: auto; padding: 22px 30px 60px; }
+#titre { font-weight: 600; font-size: 27px; margin: 0 0 16px; color: var(--ink); }
+
+#filtres {
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+  padding: 12px 14px; margin-bottom: 22px;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; font-size: 13px;
+}
+#filtres label { display: inline-flex; align-items: center; gap: 7px; color: #3c382f; }
+#filtres select {
+  min-width: 150px; font: inherit; font-size: 13px;
+  padding: 5px 8px; border: 1px solid var(--field-line);
+  border-radius: 8px; background: var(--field); color: var(--ink);
+}
+#filtres input[type=range] { accent-color: var(--acc); }
+#filtres output { font-weight: 600; color: var(--acc); font-variant-numeric: tabular-nums; }
+
+/* --- Carte de résultat --------------------------------------- */
+.carte {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  padding: 16px 18px;
+  margin-bottom: 13px;
+  box-shadow: 0 1px 2px rgba(27,26,23,.03);
+  transition: box-shadow .15s, border-color .15s;
+}
+.carte:hover { box-shadow: 0 6px 18px rgba(27,26,23,.07); border-color: #d8cfbf; }
+.carte h3 {
+  margin: 0 0 12px;
+  font-size: 15.5px; font-weight: 600; line-height: 1.3;
+  color: var(--ink);
+  display: flex; align-items: baseline; gap: 12px;
+}
+/* Le taux devient le chiffre héros de la carte */
+.taux {
+  font-family: "Spectral", serif;
+  font-weight: 700; font-size: 26px; line-height: 1;
+  color: var(--acc);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.barre {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12px; color: var(--muted);
+  max-width: 360px; margin: 4px 0;
+}
+.jauge {
+  flex: 1; height: 7px;
+  background: var(--acc-track);
+  border-radius: 4px; overflow: hidden;
+}
+.jauge > i { display: block; height: 100%; background: var(--acc); border-radius: 4px; }
+/* jauge transversale : teinte beige distincte (2e .barre) */
+.barre:nth-of-type(2) .jauge > i { background: var(--transv); }
+
+.meta {
+  font-size: 12.5px; color: var(--muted);
+  margin: 12px 0 0; padding-top: 11px;
+  border-top: 1px solid var(--line-soft);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.meta .voir {
+  font: inherit; font-size: 12.5px; font-weight: 600;
+  color: var(--acc-ink); background: none; border: none;
+  padding: 0; cursor: pointer;
+}
+.meta .voir:hover { color: var(--acc); }
+
+.vide { color: var(--muted); padding: 2.5rem 0; text-align: center; font-size: 14px; }
+
+/* --- Non positionnables -------------------------------------- */
+#nonpos { margin-top: 20px; padding-top: .5rem; border-top: 1px dashed var(--line); }
+#nonpos > summary { cursor: pointer; font-size: 12.5px; color: var(--muted); }
+#nonposFiltre {
+  width: 100%; max-width: 420px; padding: 9px 12px; margin: .6rem 0;
+  font: inherit; font-size: 13.5px; border: 1px solid var(--field-line);
+  border-radius: 9px; background: var(--field);
+}
+
+/* --- Panneau de fiche ---------------------------------------- */
+#panneau {
+  position: fixed; top: 0; right: 0;
+  width: min(560px, 92vw); height: 100vh;
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  overflow-y: auto;
+  padding: 24px 30px 60px;
+  box-shadow: -8px 0 32px rgba(27,26,23,.12);
+  transform: translateX(100%);
+  transition: transform .18s ease;
+}
+#panneau.ouvert { transform: none; }
+#panneau h2 { font-weight: 600; font-size: 22px; line-height: 1.25; margin: 0 0 6px; color: var(--ink); }
+#panneau h3 { font-weight: 600; font-size: 15px; margin: 20px 0 6px; color: var(--ink); }
+#panneau .meta { border: none; padding: 0; margin: 0 0 18px; }
+#panneau p { font-size: 13.5px; line-height: 1.55; color: #3c382f; margin: 0 0 8px; }
+#panneau .bloc { border-top: 1px solid var(--line-soft); padding: 12px 0; }
+#panneau .bloc strong { display: block; font-size: 13.5px; color: var(--ink); margin-bottom: 5px; }
+#panneau .bloc p { color: var(--muted); font-size: 13px; }
+#panneau mark { background: var(--mark); border-radius: 2px; padding: 0 1px; }
+#fermer {
+  float: right; font-size: 22px; line-height: 1;
+  background: none; border: none; color: var(--faint); cursor: pointer;
+}
+#fermer:hover { color: var(--ink); }
+
+/* --- Responsive ---------------------------------------------- */
+@media (max-width: 768px) {
+  main { flex-direction: column; }
+  #arbre { width: auto; border-right: none; border-bottom: 1px solid var(--line); }
+  .caro-header { flex-wrap: wrap; gap: 8px; }
+  .caro-header .source { margin-left: 0; }
+}
