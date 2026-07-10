@@ -24,7 +24,8 @@ def fabriquer_fixtures(base: Path):
             "export_fiches_CSV_Standard_2026-07-05.csv",
             "Numero_Fiche;Intitule;Actif\n"
             "RNCP0001;Développeur web;ACTIVE\n"
-            "RNCP0002;Ancien titre;INACTIVE\n")
+            "RNCP0002;Ancien titre;INACTIVE\n"
+            "RNCP0003;Diplôme sans bloc;ACTIVE\n")
     # Zip XML RNCP : blocs de RNCP0001 (BC01 mappé ia, BC02 lexical, BC03 non_classe).
     xml_zip = base / "export-fiches-rncp-v4-1-2026-07-05.zip"
     xml = (
@@ -54,6 +55,9 @@ def fabriquer_fixtures(base: Path):
         encoding="utf-8")
     (taxo / "mapping_blocs.csv").write_text(
         "bloc_code;competence_id;methode;score\nRNCP0001BC01;site_web;ia;0.9\n",
+        encoding="utf-8")
+    (taxo / "mapping_fiches.csv").write_text(
+        "numero_fiche;competence_id;methode\nRNCP0003;site_web;ia\n",
         encoding="utf-8")
     (taxo / "meta.json").write_text(
         json.dumps({"version": "1", "date": "2026-07-06", "modele": "test"}),
@@ -88,7 +92,12 @@ class TestBoutEnBout(unittest.TestCase):
                           "RNCP0001BC03": "non_classe"})
         vue = conn.execute(
             "SELECT COUNT(*) FROM certification_competence").fetchone()[0]
-        self.assertEqual(vue, 1)
+        self.assertEqual(vue, 2)
+        # RNCP0003 n'a aucun bloc mais est rattachée par fiche : présente dans la vue.
+        fiches = sorted(r[0] for r in conn.execute(
+            "SELECT DISTINCT numero_fiche FROM certification_competence"))
+        self.assertEqual(fiches, ["RNCP0001", "RNCP0003"])
+        self.assertEqual(meta["nb_fiches_rattachees"], "1")
 
     def test_no_taxonomie(self):
         d = tempfile.mkdtemp()

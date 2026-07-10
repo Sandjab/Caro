@@ -352,6 +352,12 @@ def indexer_taxonomie(conn: sqlite3.Connection) -> None:
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_bcc_competence "
         "ON bloc_competence_canonique (competence_id)")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_fcc_numero "
+        "ON fiche_competence_canonique (numero_fiche)")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_fcc_competence "
+        "ON fiche_competence_canonique (competence_id)")
     conn.commit()
 
 
@@ -797,6 +803,7 @@ def main() -> None:
 
     taxo = None
     taxo_stats: dict = {}
+    fiche_stats: dict = {}
     if not args.no_taxonomie:
         taxo = charger_taxonomie(args.taxonomie_dir)
         if taxo is None:
@@ -804,12 +811,14 @@ def main() -> None:
     if taxo is not None:
         log("\nConstruction de la taxonomie de compétences…")
         taxo_stats = construire_taxonomie(conn, taxo)
-        construire_fiche_competence(conn, taxo)
+        fiche_stats = construire_fiche_competence(conn, taxo)
         creer_vue_certification_competence(conn)
         indexer_taxonomie(conn)
         log(f"  couverture : ia {taxo_stats['blocs_ia_pct']}% · "
             f"lexical {taxo_stats['blocs_lexical_pct']}% · "
             f"non classé {taxo_stats['blocs_non_classe_pct']}%")
+        log(f"  rattachement par fiche : {fiche_stats['nb_fiches_rattachees']} fiches "
+            f"({fiche_stats['nb_rattachements_fiche']} rattachements)")
 
     meta_entries = {
         "source": DATASET_API,
@@ -827,6 +836,7 @@ def main() -> None:
             "blocs_ia_pct": str(taxo_stats["blocs_ia_pct"]),
             "blocs_lexical_pct": str(taxo_stats["blocs_lexical_pct"]),
             "blocs_non_classe_pct": str(taxo_stats["blocs_non_classe_pct"]),
+            "nb_fiches_rattachees": str(fiche_stats.get("nb_fiches_rattachees", 0)),
         })
         for cle in ("version", "date", "modele"):
             if cle in taxo.meta:
