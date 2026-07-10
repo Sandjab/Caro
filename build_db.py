@@ -330,6 +330,11 @@ def creer_vue_certification_competence(conn: sqlite3.Connection) -> None:
     rattachement par fiche (certifications sans bloc dans la source). Le UNION
     (et non UNION ALL) dédoublonne une fiche couverte par les deux chemins.
     """
+    # Garantit que la table fiche_competence_canonique existe (même vide)
+    # pour que la vue puisse l'unir sans condition.
+    conn.execute("CREATE TABLE IF NOT EXISTS fiche_competence_canonique ("
+                 "numero_fiche TEXT, competence_id TEXT, methode TEXT, "
+                 "PRIMARY KEY (numero_fiche, competence_id))")
     conn.execute("DROP VIEW IF EXISTS certification_competence")
     conn.execute(
         "CREATE VIEW certification_competence AS "
@@ -804,7 +809,6 @@ def main() -> None:
     if taxo is not None:
         log("\nConstruction de la taxonomie de compétences…")
         taxo_stats = construire_taxonomie(conn, taxo)
-        construire_fiche_competence(conn, taxo)
         creer_vue_certification_competence(conn)
         indexer_taxonomie(conn)
         log(f"  couverture : ia {taxo_stats['blocs_ia_pct']}% · "
