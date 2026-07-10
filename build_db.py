@@ -324,14 +324,23 @@ def construire_fiche_competence(conn: sqlite3.Connection, taxo: "Taxonomie") -> 
 
 
 def creer_vue_certification_competence(conn: sqlite3.Connection) -> None:
-    """Vue diplôme -> compétences canoniques couvertes (blocs non classés exclus)."""
+    """Vue diplôme -> compétences canoniques couvertes.
+
+    UNION de deux chemins : les blocs mappés (blocs non classés exclus) et le
+    rattachement par fiche (certifications sans bloc dans la source). Le UNION
+    (et non UNION ALL) dédoublonne une fiche couverte par les deux chemins.
+    """
     conn.execute("DROP VIEW IF EXISTS certification_competence")
     conn.execute(
         "CREATE VIEW certification_competence AS "
         "SELECT DISTINCT b.numero_fiche, m.competence_id, cc.domaine_id "
         "FROM bloc_competences_xml b "
         "JOIN bloc_competence_canonique m ON m.bloc_code = b.bloc_code "
-        "JOIN competence_canonique cc ON cc.competence_id = m.competence_id")
+        "JOIN competence_canonique cc ON cc.competence_id = m.competence_id "
+        "UNION "
+        "SELECT DISTINCT f.numero_fiche, f.competence_id, cc.domaine_id "
+        "FROM fiche_competence_canonique f "
+        "JOIN competence_canonique cc ON cc.competence_id = f.competence_id")
     conn.commit()
 
 
@@ -795,6 +804,7 @@ def main() -> None:
     if taxo is not None:
         log("\nConstruction de la taxonomie de compétences…")
         taxo_stats = construire_taxonomie(conn, taxo)
+        construire_fiche_competence(conn, taxo)
         creer_vue_certification_competence(conn)
         indexer_taxonomie(conn)
         log(f"  couverture : ia {taxo_stats['blocs_ia_pct']}% · "

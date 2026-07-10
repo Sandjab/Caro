@@ -95,3 +95,40 @@ class TestConstruireFicheCompetence(unittest.TestCase):
         n = conn.execute("SELECT COUNT(*) FROM fiche_competence_canonique").fetchone()[0]
         self.assertEqual(n, 0)
         self.assertEqual(stats["nb_fiches_rattachees"], 0)
+
+
+class TestVueUnion(unittest.TestCase):
+    def setUp(self):
+        self.conn = sqlite3.connect(":memory:")
+        # Chemin blocs : une fiche RNCP0001 avec un bloc mappé.
+        self.conn.execute(
+            "CREATE TABLE bloc_competences_xml (numero_fiche TEXT, repertoire TEXT, "
+            "bloc_code TEXT, bloc_libelle TEXT, liste_competences TEXT, "
+            "modalites_evaluation TEXT)")
+        self.conn.execute(
+            "INSERT INTO bloc_competences_xml VALUES "
+            "('RNCP0001','RNCP','RNCP0001BC01','B','x','')")
+        self.conn.execute(
+            "CREATE TABLE competence_canonique (competence_id TEXT PRIMARY KEY, "
+            "domaine_id TEXT, libelle TEXT, description TEXT, mots_cles TEXT, "
+            "nb_blocs INTEGER DEFAULT 0)")
+        self.conn.executemany(
+            "INSERT INTO competence_canonique (competence_id, domaine_id) VALUES (?,?)",
+            [("site_web", "numerique"), ("gestion", "numerique")])
+        self.conn.execute(
+            "CREATE TABLE bloc_competence_canonique (bloc_code TEXT PRIMARY KEY, "
+            "numero_fiche TEXT, competence_id TEXT, methode TEXT, score REAL)")
+        self.conn.execute(
+            "INSERT INTO bloc_competence_canonique VALUES "
+            "('RNCP0001BC01','RNCP0001','site_web','ia',0.9)")
+        # Chemin fiches : RS0009 (sans bloc) -> gestion ; RNCP0001 -> site_web (doublon).
+        t = build_db.Taxonomie([], [], {}, {}, fiche_mapping=[
+            ("RS0009", "gestion", "ia"), ("RNCP0001", "site_web", "ia")])
+        build_db.construire_fiche_competence(self.conn, t)
+        build_db.creer_vue_certification_competence(self.conn)
+
+    def test_union_des_deux_chemins(self):
+        rows = sorted(self.conn.execute(
+            "SELECT numero_fiche, competence_id FROM certification_competence"))
+        # RNCP0001/site_web n'apparaît qu'une fois (UNION), RS0009/gestion ajouté.
+        self.assertEqual(rows, [("RNCP0001", "site_web"), ("RS0009", "gestion")])
