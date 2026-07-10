@@ -1,10 +1,10 @@
 {
-  "version": "4",
+  "version": "5",
   "date": "2026-07-10",
   "modele": "claude-sonnet-5",
-  "description": "Taxonomie de competences canoniques France competences (RNCP/RS). Domaines et competences canoniques curated ; mapping des blocs initialement produit par classification LLM (Haiku) des libelles de blocs distincts contre le menu canonique, puis integralement revu. A l'issue de la passe 3, chacun des 19 428 libelles de blocs distincts porte un jugement Sonnet : soit un arbitrage (passes 1-2), soit une verification (passe 3). Le mapping est reconstruit de facon deterministe depuis la classification d'origine en rejouant les trois passes dans l'ordre.",
+  "description": "Taxonomie de competences canoniques France competences (RNCP/RS). Domaines et competences canoniques curated ; mapping des blocs initialement produit par classification LLM (Haiku) des libelles de blocs distincts contre le menu canonique, puis integralement revu. A l'issue de la passe 3, chacun des 19 428 libelles de blocs distincts porte un jugement Sonnet : soit un arbitrage (passes 1-2), soit une verification (passe 3). Le mapping est reconstruit de facon deterministe depuis la classification d'origine en rejouant les trois passes dans l'ordre. La passe_fiches ajoute un chemin de rattachement PAR FICHE (mapping_fiches.csv) pour les 405 certifications VAE sans bloc de competences dans la source, classees depuis leur texte libre (capacites attestees, activites visees).",
   "nb_domaines": 40,
-  "nb_competences_canoniques": 264,
+  "nb_competences_canoniques": 295,
   "nb_competences_utilisees": 263,
   "perimetre_blocs": "fiches actives",
   "curation": {
@@ -86,6 +86,44 @@
         "nouvelles_competences": 37,
         "deplacements": 219
       }
+    },
+    "passe_fiches": {
+      "motif": "Positionner les 405 certifications accessibles par VAE restees sans competence (396 sans aucun bloc dans la source XML/CSV, 9 dont tous les blocs sont non_classe). Sans bloc, mapping_blocs ne peut rien rattacher : on classe la fiche PAR SON TEXTE LIBRE (capacites attestees + activites visees) contre le menu des 264 competences existantes, existantes d'abord, nouvelles sous gate humain.",
+      "perimetre": "405 fiches VAE absentes de certification_competence",
+      "mecanisme": "nouvel artefact mapping_fiches.csv (numero_fiche;competence_id;methode), lu par build_db.py dans la table fiche_competence_canonique ; la vue certification_competence devient une UNION du chemin blocs et du chemin fiche",
+      "classification": {
+        "modele": "claude-sonnet-5",
+        "couverture": "405/405",
+        "rattachements_existantes": 667,
+        "besoins_nouvelles": 89,
+        "fiches_avec_existante": 371,
+        "fiches_seulement_besoin": 34
+      },
+      "iteration_precision": {
+        "motif": "Une premiere passe classait plus large (1044 rattachements) et certifiait 4,7 % de faux : sur-attribution du contexte sectoriel et des competences transversales generiques. Prompt durci (le contexte n'est pas une competence ; transversale seulement si centrale ; distinguer les competences adjacentes ; retirer au moindre doute), qui a ramene le taux a 1,0 %.",
+        "faux_pct_avant": 4.7,
+        "faux_pct_apres": 1.0,
+        "rattachements_avant": 1044,
+        "rattachements_apres": 756
+      },
+      "consolidation": {
+        "modele": "claude-sonnet-5",
+        "besoins": 89,
+        "candidates": 31,
+        "nouveaux_domaines": 0
+      },
+      "validation_humaine": {
+        "candidates_approuvees": 31,
+        "candidates_refusees": 0,
+        "nouveaux_domaines": 0
+      },
+      "application": {
+        "nouvelles_competences": 31,
+        "rattachements_par_fiche": 756,
+        "fiches_positionnees": 405,
+        "vae_non_positionnables_avant": 405,
+        "vae_non_positionnables_apres": 0
+      }
     }
   },
   "certification": {
@@ -124,6 +162,23 @@
       "taux_faux_plus_doute_pct": 7.1,
       "taux_faux_plus_doute_ic95_pts": 2.6,
       "point_faible": "com_techniques_editoriales est un fourre-tout trop large (les 2 faux en viennent)"
+    },
+    "delta_fiches": {
+      "principe": "juge independant Opus, posture de refutation, echantillon deterministe (tri par empreinte md5) des rattachements par fiche livres ; intervalle de Wilson",
+      "modele": "claude-opus-4-8",
+      "echantillon": 300,
+      "juges": 299,
+      "population": 756,
+      "brut": {
+        "ok": 255,
+        "doute": 41,
+        "faux": 3
+      },
+      "taux_faux_pct": 1.0,
+      "taux_faux_ic95_wilson_pct": [0.3, 2.9],
+      "taux_faux_plus_doute_pct": 14.7,
+      "taux_faux_plus_doute_ic95_wilson_pct": [11.1, 19.2],
+      "point_faible": "le doute se concentre sur les competences generiques (transversal, gestion_management) : les capacites attestees les evoquent sans les etablir nettement. Le taux faux+doute est un majorant ; le taux faux (1,0 %) est la mesure fiable."
     }
   },
   "couverture": {
