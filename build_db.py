@@ -296,6 +296,33 @@ def construire_taxonomie(conn: sqlite3.Connection, taxo: "Taxonomie",
     return stats
 
 
+def construire_fiche_competence(conn: sqlite3.Connection, taxo: "Taxonomie") -> dict:
+    """Crée fiche_competence_canonique et rattache chaque fiche listée.
+
+    Chemin « par fiche » : pour les certifications sans bloc dans la source,
+    on rattache la fiche entière à des compétences canoniques (issues du texte
+    libre, décidées hors ligne par la passe de curation). La table est TOUJOURS
+    créée, même vide, pour que la vue certification_competence puisse l'unir
+    sans condition. Renvoie des stats.
+    """
+    conn.execute("DROP TABLE IF EXISTS fiche_competence_canonique")
+    conn.execute(
+        "CREATE TABLE fiche_competence_canonique ("
+        "numero_fiche TEXT, competence_id TEXT, methode TEXT, "
+        "PRIMARY KEY (numero_fiche, competence_id))")
+    conn.executemany(
+        "INSERT OR IGNORE INTO fiche_competence_canonique "
+        "(numero_fiche, competence_id, methode) VALUES (?, ?, ?)",
+        taxo.fiche_mapping)
+    nb_rattachements = conn.execute(
+        "SELECT COUNT(*) FROM fiche_competence_canonique").fetchone()[0]
+    nb_fiches = conn.execute(
+        "SELECT COUNT(DISTINCT numero_fiche) FROM fiche_competence_canonique").fetchone()[0]
+    conn.commit()
+    return {"nb_rattachements_fiche": nb_rattachements,
+            "nb_fiches_rattachees": nb_fiches}
+
+
 def creer_vue_certification_competence(conn: sqlite3.Connection) -> None:
     """Vue diplôme -> compétences canoniques couvertes (blocs non classés exclus)."""
     conn.execute("DROP VIEW IF EXISTS certification_competence")
