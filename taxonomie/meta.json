@@ -1,11 +1,11 @@
 {
-  "version": "3",
-  "date": "2026-07-08",
+  "version": "4",
+  "date": "2026-07-10",
   "modele": "claude-sonnet-5",
   "description": "Taxonomie de competences canoniques France competences (RNCP/RS). Domaines et competences canoniques curated ; mapping des blocs initialement produit par classification LLM (Haiku) des libelles de blocs distincts contre le menu canonique, puis integralement revu. A l'issue de la passe 3, chacun des 19 428 libelles de blocs distincts porte un jugement Sonnet : soit un arbitrage (passes 1-2), soit une verification (passe 3). Le mapping est reconstruit de facon deterministe depuis la classification d'origine en rejouant les trois passes dans l'ordre.",
-  "nb_domaines": 35,
-  "nb_competences_canoniques": 227,
-  "nb_competences_utilisees": 226,
+  "nb_domaines": 40,
+  "nb_competences_canoniques": 264,
+  "nb_competences_utilisees": 263,
   "perimetre_blocs": "fiches actives",
   "curation": {
     "passe_1": {
@@ -54,6 +54,38 @@
         "passes_en_non_classe": 98,
         "non_classe_confirmes": 317
       }
+    },
+    "passe_non_classe": {
+      "motif": "Sur les 544 libelles de blocs sans competence canonique (non_classe, 3,4 % des blocs), distinguer les vrais inclassables des lacunes du menu et rattacher ce qui peut l'etre.",
+      "perimetre": "544 libelles de blocs distincts non_classe",
+      "jugement": {
+        "modele": "claude-sonnet-5",
+        "inclassable": 98,
+        "rescue_existante": 102,
+        "nouvelle_brouillons": 344
+      },
+      "synthese_consolidation": {
+        "modele": "claude-sonnet-5",
+        "candidates_avant_consolidation": 195,
+        "candidates_apres_consolidation": 38
+      },
+      "validation_humaine": {
+        "candidates_approuvees": 37,
+        "candidates_refusees": 1,
+        "nouveaux_domaines": 5
+      },
+      "balayage": {
+        "modele": "claude-sonnet-5",
+        "motif": "blocs deja mappes proches d une nouvelle competence",
+        "items": 1251,
+        "deplacements": 219
+      },
+      "application": {
+        "rescue_existante": 102,
+        "rescue_nouvelle": 343,
+        "nouvelles_competences": 37,
+        "deplacements": 219
+      }
     }
   },
   "certification": {
@@ -61,7 +93,11 @@
     "modele": "claude-opus-4-8",
     "echantillon": 600,
     "population": 18928,
-    "brut": { "ok": 487, "doute": 107, "faux": 6 },
+    "brut": {
+      "ok": 487,
+      "doute": 107,
+      "faux": 6
+    },
     "taux_faux_pct": 1.0,
     "taux_faux_ic95_pts": 0.8,
     "taux_faux_plus_doute_pct": 18.8,
@@ -72,11 +108,27 @@
       "reclassifie_passe3": 19.8,
       "arbitre_sonnet_passe2": 22.6
     },
-    "reserve": "le taux mesure l'accord d'Opus avec Sonnet. Un desaccord n'est pas toujours une erreur : les libelles multi-thematiques (ex. « recrutement, remuneration et paie ») n'ont pas de rattachement unique correct. Le taux faux+doute est donc un majorant ; le taux faux (1,0 %) est la mesure fiable des erreurs franches."
+    "reserve": "le taux mesure l'accord d'Opus avec Sonnet. Un desaccord n'est pas toujours une erreur : les libelles multi-thematiques (ex. « recrutement, remuneration et paie ») n'ont pas de rattachement unique correct. Le taux faux+doute est donc un majorant ; le taux faux (1,0 %) est la mesure fiable des erreurs franches.",
+    "delta_non_classe": {
+      "principe": "juge independant Opus, posture de refutation, echantillon stratifie du delta (rattachements changes)",
+      "modele": "claude-opus-4-8",
+      "echantillon": 300,
+      "population": 658,
+      "brut": {
+        "ok": 279,
+        "doute": 19,
+        "faux": 2
+      },
+      "taux_faux_pct": 0.6,
+      "taux_faux_ic95_pts": 0.8,
+      "taux_faux_plus_doute_pct": 7.1,
+      "taux_faux_plus_doute_ic95_pts": 2.6,
+      "point_faible": "com_techniques_editoriales est un fourre-tout trop large (les 2 faux en viennent)"
+    }
   },
   "couverture": {
-    "blocs_ia_pct": 96.3,
-    "blocs_lexical_pct": 0.3,
-    "blocs_non_classe_pct": 3.4
+    "blocs_ia_pct": 99.3,
+    "blocs_lexical_pct": 0.2,
+    "blocs_non_classe_pct": 0.5
   }
 }

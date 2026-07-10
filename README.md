@@ -44,7 +44,7 @@ compétences en **texte libre**. Chaque certificateur rédige ses blocs de
 compétences comme il l'entend — sa « liste de courses » —, si bien que les
 mêmes savoir-faire reviennent sous des milliers de formulations : les quelque
 19 400 libellés de blocs distincts des fiches actives se ramènent à
-227 compétences canoniques (voir la taxonomie plus bas). Aucun moyen simple,
+264 compétences canoniques (voir la taxonomie plus bas). Aucun moyen simple,
 là non plus, de répondre à « quelles certifications mon expérience
 couvre-t-elle ? ».
 
@@ -80,15 +80,19 @@ Chaque certification décrit ses exigences en « blocs de compétences » rédig
 en texte libre, tous différents d'une fiche à l'autre : impossible de comparer
 deux certifications directement là-dessus. La taxonomie résout ce problème en
 rattachant chaque bloc réel à une **compétence canonique** d'un référentiel
-pivot : 35 domaines, 227 compétences.
+pivot : 40 domaines, 264 compétences.
 
 Ce rattachement est un **artefact versionné dans le dépôt** (trois fichiers
 CSV et leurs métadonnées), produit hors ligne par un outil séparé et
 occasionnel : classification par LLM des quelque 19 400 libellés de blocs
-distincts contre le menu canonique, curation en trois passes d'arbitrage, puis
-certification par un juge indépendant (modèle différent, posture de
+distincts contre le menu canonique, curation en plusieurs passes d'arbitrage,
+puis certification par un juge indépendant (modèle différent, posture de
 réfutation) qui mesure **environ 1,0 % d'erreur franche** (IC 95 % ± 0,8) sur
-le mapping livré. La construction de la base se contente de **lire** cet
+le mapping livré. Une passe ultérieure a repris les blocs restés non classés
+pour combler les lacunes du menu — d'où 37 compétences et 5 domaines nouveaux
+(théologie, marine & maritime, sciences politiques, psychologie, horlogerie) —,
+portant la couverture à **99,3 %** des blocs actifs (delta certifié à 0,6 %
+d'erreur franche). La construction de la base se contente de **lire** cet
 artefact — elle reste déterministe et sans dépendance. Les blocs que
 l'artefact ne couvre pas passent par un repli lexical simple : une **similarité
 de Jaccard** — taille de l'intersection rapportée à celle de l'union — entre

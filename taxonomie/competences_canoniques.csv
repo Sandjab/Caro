@@ -226,3 +226,40 @@ ar_arts_plastiques;arts_culture;Créer des œuvres en arts plastiques et visuels
 ar_patrimoine;arts_culture;Valoriser et protéger le patrimoine culturel;;patrimoine|patrimoine culturel|conservation|médiation culturelle
 ar_documentation;arts_culture;Gérer la documentation et l'information documentaire;;documentation|bibliothèque|archives|information documentaire|données
 ar_metiers_art;arts_culture;Concevoir et réaliser un ouvrage de métier d'art;;métiers d'art|artisanat d'art|bijouterie|horlogerie|restauration d'art
+agr_metiers_elevage;agriculture_nature;Exercer un métier spécialisé de l'agriculture et de l'élevage;;équestre|maréchal-ferrant|aviculture|expérimentation agricole|comportementaliste|élevage
+agr_fleuristerie;agriculture_nature;Confectionner des compositions et prestations de fleuristerie;;fleuriste|art floral|composition florale|végétaux|prestations
+hum_analyse_culturelle;arts_culture;Analyser des phénomènes, productions et pratiques culturelles, littéraires et sociétales;;culture|littérature|médias|sociolinguistique|recherche|philosophie|épistémologie
+art_artisanat_specialise;arts_culture;Exercer un métier artisanal ou technique spécialisé (spectacle, gemmologie, armurerie, cuir);;maquillage|effets spéciaux|habillage|costumier|gemmologie|pierres précieuses|armurerie|cordonnerie
+btp_engins_vehicules;btp;Conduire des engins et véhicules spécialisés, réaliser des interventions de serrurerie;;engins|chantier|CACES|damage|serrurerie|compétition|remorquage|véhicule
+btp_interventions_specialisees;btp;Réaliser des interventions techniques spécialisées du bâtiment et de l'hygiène;;désamiantage|nuisibles|foncier|calepinage|patrimoine|réglementation|sécurité
+mat_materiaux_industriels;chimie_materiaux;Produire et contrôler des matériaux et composants industriels;;céramique|fonderie|nanostructures|photonique|matériaux avancés|production
+com_international_performance;commerce_vente;Développer le commerce international et mesurer la performance commerciale;;commerce international|export|douane|performance|KPI|ROI|événementiel|revenue management
+com_techniques_editoriales;communication_media;Exercer des métiers techniques et éditoriaux de la communication;;design d'espace|signalétique|sonorisation|SAV audiovisuel|rédaction|correction
+com_traduction;communication_media;Traduire, interpréter et localiser des contenus professionnels;;traduction|localisation|interprétariat|qualité|post-édition|langues
+dro_juridique_fiscal;droit;Exercer des fonctions juridiques, fiscales et d'auxiliaire de justice;;juridique|fiscal|social|conseil|enchères|ventes judiciaires|greffe|procédure
+ene_production_transport_stockage;energie;Piloter la production, le transport et le stockage de l'énergie;;production d'énergie|transport d'énergie|stockage souterrain|géoénergies|réseau
+eg_francais_histoire_emc;enseignement_general;Maîtriser et enseigner le français, l'histoire-géographie et l'enseignement moral et civique;;français|histoire-géographie|enseignement moral et civique|EMC|bloc combiné
+eg_maths_physique_chimie;enseignement_general;Maîtriser les mathématiques et la physique-chimie;;mathématiques|physique|chimie|sciences|bloc combiné
+ges_entrepreneuriat;gestion_management;Créer et développer une activité professionnelle indépendante;;entrepreneuriat|création d'activité|activité indépendante|modèle économique|innovation|développement commercial
+ges_achats;gestion_management;Piloter les achats, l'approvisionnement et le sourcing;;achats|sourcing|négociation|fournisseurs|approvisionnement|RSE
+ges_admin_immobilier;gestion_management;Assurer la gestion administrative, locative et de copropriété;;assistanat|logement social|copropriété|syndic|protection sociale|gestion administrative
+hor_horlogerie;horlogerie;Diagnostiquer, préparer et réparer une montre;;montre|diagnostic|réparation|entretien|horlogerie|mécanisme|préparation
+mar_navigation_securite;marine_maritime;Naviguer, conduire et assurer la sécurité réglementaire d'un navire;;navigation|passerelle|manœuvre|pilotage|plaisance|brevet STCW|sécurité|pêche|matelot
+mar_construction_expertise;marine_maritime;Construire, équiper et expertiser un navire dans son environnement maritime;;construction navale|accastillage|gréement|expertise maritime|avarie|sinistre|océanographie|environnement
+psy_psychologie;psychologie;Exercer une pratique clinique et une activité de recherche en psychologie;;clinique|psychothérapie|diagnostic psychique|déontologie|recherche en psychologie|psychanalyse
+pol_geopolitique_eco;sciences_politiques_relations_internationales;Analyser les enjeux géopolitiques, économiques et les politiques publiques;;géopolitique|diplomatie|relations internationales|politiques publiques|conjoncture économique|négociation
+rel_theologie_vie_religieuse;theologie_sciences_religieuses;Analyser, diffuser et exercer une mission en théologie et sciences religieuses;;théologie|pastorale|aumônerie|analyse critique|histoire des religions|laïcité|droit canonique|catholique|protestante
+sec_travaux_subaquatiques;securite;Réaliser des travaux et interventions en milieu subaquatique;;plongée professionnelle|subaquatique|travaux sous-marins|scaphandrier|eau profonde
+num_gouvernance_conformite;numerique;Garantir la gouvernance, la conformité réglementaire et la circularité des systèmes numériques;;gouvernance|conformité|souveraineté numérique|RGPD|stratégie SI|blockchain|reconditionnement|jeux
+num_produits_numeriques;numerique;Concevoir, tester et déployer des solutions numériques (IA, signal, jeux vidéo);;intelligence artificielle|machine learning|traitement du signal|traitement de l'image|jeu vidéo|QA
+san_appareillage_medical;sante_biologie;Concevoir, fabriquer et adapter des appareillages médicaux et prothétiques;;orthopédie|orthèse|prothèse|podo-orthèse|prothèse dentaire|audioprothèse|optique-lunetterie|CFAO
+san_specialites_techniques;sante_biologie;Assurer des missions techniques, réglementaires et d'évaluation en santé;;radiothérapie|réglementation|produits de santé|équipement médico-technique|pharmacoépidémiologie|vie réelle
+san_secretariat_medical;sante_biologie;Assurer l'accueil et la gestion administrative du patient;;accueil patient|secrétariat médical|dossier médical|parcours de soin|administration
+san_essai_clinique;sante_biologie;Piloter un essai clinique de sa mise en place à sa clôture;;essai clinique|monitoring|recherche clinique|attaché de recherche clinique|site clinique
+san_nutrition;sante_biologie;Conduire une démarche de conseil et de soin en nutrition et diététique;;diététique|nutrition|conseil nutritionnel|alimentation adaptée|agroalimentaire
+sci_geosciences_terre_meteo;sciences_ingenierie;Analyser les systèmes terrestres, les ressources géologiques et le climat;;géosphère|biosphère|hydrosphère|géologie|réservoir|carrière|météorologie|climat|biomimétisme
+sec_enquetes_forensique;securite;Mener des enquêtes, investigations et activités de police scientifique;;enquête privée|investigation|détective|forensique|police scientifique|criminalistique
+sec_prep_survie_pyro;securite;Assurer la préparation opérationnelle, la survie et la dépollution pyrotechnique;;préparation opérationnelle|défense|survie|milieu hostile|dépollution pyrotechnique|déminage
+spo_ergonomie_support;sport;Concevoir des solutions ergonomiques et assurer le support technique et institutionnel du sport;;ergonomie|biomécanique|activité physique adaptée|entretien matériel|gouvernance fédérale
+tra_aeronautique;transport_logistique;Piloter, exploiter et contrôler les opérations aéronautiques;;pilotage d'aéronef|drone|BVLOS|contrôle aérien|opérations aéroportuaires|sécurité des vols|expertise aéronautique
+tra_ferroviaire;transport_logistique;Conduire et sécuriser un réseau ferroviaire;;conduite de trains|métro|RER|sécurité ferroviaire|circulation des trains
