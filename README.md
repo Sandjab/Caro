@@ -44,7 +44,7 @@ compétences en **texte libre**. Chaque certificateur rédige ses blocs de
 compétences comme il l'entend — sa « liste de courses » —, si bien que les
 mêmes savoir-faire reviennent sous des milliers de formulations : les quelque
 19 400 libellés de blocs distincts des fiches actives se ramènent à
-264 compétences canoniques (voir la taxonomie plus bas). Aucun moyen simple,
+295 compétences canoniques (voir la taxonomie plus bas). Aucun moyen simple,
 là non plus, de répondre à « quelles certifications mon expérience
 couvre-t-elle ? ».
 
@@ -80,7 +80,7 @@ Chaque certification décrit ses exigences en « blocs de compétences » rédig
 en texte libre, tous différents d'une fiche à l'autre : impossible de comparer
 deux certifications directement là-dessus. La taxonomie résout ce problème en
 rattachant chaque bloc réel à une **compétence canonique** d'un référentiel
-pivot : 40 domaines, 264 compétences.
+pivot : 40 domaines, 295 compétences.
 
 Ce rattachement est un **artefact versionné dans le dépôt** (trois fichiers
 CSV et leurs métadonnées), produit hors ligne par un outil séparé et
@@ -92,7 +92,13 @@ le mapping livré. Une passe ultérieure a repris les blocs restés non classés
 pour combler les lacunes du menu — d'où 37 compétences et 5 domaines nouveaux
 (théologie, marine & maritime, sciences politiques, psychologie, horlogerie) —,
 portant la couverture à **99,3 %** des blocs actifs (delta certifié à 0,6 %
-d'erreur franche). La construction de la base se contente de **lire** cet
+d'erreur franche). Une dernière passe traite les **certifications sans bloc**
+dans la source (habilitations RS mono-objet, diplômes Jeunesse-Sport/STAPS…) :
+faute de bloc à rattacher, elle les classe depuis leur **texte libre**
+(capacités attestées, activités visées) via un chemin de rattachement *par
+fiche* (`mapping_fiches.csv`) — d'où 31 compétences nouvelles et **0
+certification VAE non positionnable** (délta certifié à 1,0 % d'erreur franche).
+La construction de la base se contente de **lire** cet
 artefact — elle reste déterministe et sans dépendance. Les blocs que
 l'artefact ne couvre pas passent par un repli lexical simple : une **similarité
 de Jaccard** — taille de l'intersection rapportée à celle de l'union — entre
@@ -157,14 +163,13 @@ au texte de présentation et aux blocs de compétences officiels de la fiche.
 
 Limites à connaître avant de s'appuyer sur le classement :
 
-- **414 des 5 591 certifications accessibles par VAE n'ont aucune compétence
-  rattachée** (chiffres de juillet 2026 ; pour l'essentiel, des fiches sans
-  bloc de compétences dans les exports). Impossible de calculer leur
-  couverture : elles ne participent pas au classement, mais restent
-  consultables dans une section dédiée sous les résultats, notamment via
-  leurs capacités attestées. Les 196 fiches VAE sans niveau de diplôme
-  renseigné en font toutes partie, ce qui explique qu'aucune entrée
-  « niveau non renseigné » n'apparaisse dans le filtre.
+- **Toutes les certifications accessibles par VAE sont désormais
+  positionnées.** Les ~400 fiches sans bloc de compétences dans les exports
+  (habilitations RS mono-objet, diplômes Jeunesse-Sport/STAPS…), autrefois
+  seulement consultables, sont maintenant classées via le chemin de
+  rattachement *par fiche* décrit plus haut — depuis leur texte libre. Leur
+  positionnement porte **1,0 % d'erreur franche** certifiée : plus bruité que
+  le chemin par bloc, à prendre comme un repère et non une vérité.
 - Le taux de couverture est un signal **grossier** : la médiane est de
   4 compétences exigées par certification, donc un « 75 % » signifie souvent
   « 3 sur 4 ».
@@ -282,7 +287,7 @@ données** PDF) décrit chaque champ ; elle n'est pas chargée en base.
   tous les contenus de `fiche_texte`.
 - **`meta`** : provenance, périmètre et statistiques de construction.
 
-Si l'artefact `taxonomie/` a été fourni au build, trois tables et une vue
+Si l'artefact `taxonomie/` a été fourni au build, quatre tables et une vue
 supplémentaires apparaissent :
 
 - **`domaine`** `(domaine_id, libelle, description, ordre)` : domaines sur-mesure de
@@ -295,12 +300,17 @@ supplémentaires apparaissent :
   `ia` (mapping précalculé par l'outil taxonomie), `lexical` (repli par recouvrement de
   mots-clés au build) ou `non_classe` (sous le seuil, `competence_id` NULL — aucun
   rattachement forcé).
+- **`fiche_competence_canonique`** `(numero_fiche, competence_id, methode)` :
+  rattachement **par fiche**, pour les certifications sans bloc dans la source
+  (classées depuis leur texte libre par l'outil taxonomie). Table toujours créée,
+  vide si `mapping_fiches.csv` est absent.
 - **`certification_competence`** (vue) `(numero_fiche, competence_id, domaine_id)` :
-  diplôme → compétences canoniques couvertes (les blocs `non_classe` sont exclus).
+  diplôme → compétences canoniques couvertes, **UNION** du chemin blocs (les blocs
+  `non_classe` sont exclus) et du chemin par fiche.
 
 Les clés `meta` correspondantes : `taxonomie` (oui/non), et si présente `nb_domaines`,
-`nb_competences_canoniques`, `blocs_ia_pct` / `blocs_lexical_pct` / `blocs_non_classe_pct`,
-`taxonomie_version` / `taxonomie_date` / `taxonomie_modele`.
+`nb_competences_canoniques`, `nb_fiches_rattachees`, `blocs_ia_pct` / `blocs_lexical_pct`
+/ `blocs_non_classe_pct`, `taxonomie_version` / `taxonomie_date` / `taxonomie_modele`.
 
 ### Exemples de requêtes
 
