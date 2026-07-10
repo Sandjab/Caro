@@ -151,11 +151,12 @@ def meilleur_match_lexical(
 class Taxonomie:
     """Artefact de taxonomie chargé depuis taxonomie/*.csv."""
 
-    def __init__(self, domaines, competences, mapping, meta):
+    def __init__(self, domaines, competences, mapping, meta, fiche_mapping=None):
         self.domaines = domaines        # list[dict]
         self.competences = competences  # list[dict]
         self.mapping = mapping          # dict[str, tuple[str, str, float | None]]
         self.meta = meta                # dict[str, str]
+        self.fiche_mapping = fiche_mapping or []  # list[tuple[str, str, str]]
 
 
 def _lire_csv_point_virgule(chemin: Path) -> "list[dict]":
@@ -197,6 +198,22 @@ def charger_taxonomie(taxo_dir: Path) -> "Taxonomie | None":
             score = None
         mapping[code] = (cid, row.get("methode", "ia") or "ia", score)
 
+    # Rattachement par fiche (optionnel) : pour les certifications sans bloc
+    # dans la source, qui ne peuvent pas passer par mapping_blocs.
+    fiche_mapping: "list[tuple[str, str, str]]" = []
+    chemin_fiches = taxo_dir / "mapping_fiches.csv"
+    if chemin_fiches.exists():
+        for row in _lire_csv_point_virgule(chemin_fiches):
+            num = (row.get("numero_fiche") or "").strip()
+            cid = (row.get("competence_id") or "").strip()
+            if not num or not cid:
+                continue
+            if cid not in ids_connus:
+                log(f"  taxonomie : rattachement fiche ignoré "
+                    f"(competence inconnue) : {num} -> {cid}")
+                continue
+            fiche_mapping.append((num, cid, row.get("methode", "ia") or "ia"))
+
     meta = {}
     meta_path = taxo_dir / "meta.json"
     if meta_path.exists():
@@ -205,7 +222,7 @@ def charger_taxonomie(taxo_dir: Path) -> "Taxonomie | None":
         except (ValueError, OSError) as exc:
             log(f"  taxonomie : meta.json illisible ({exc})")
 
-    return Taxonomie(domaines, competences, mapping, meta)
+    return Taxonomie(domaines, competences, mapping, meta, fiche_mapping)
 
 
 def construire_taxonomie(conn: sqlite3.Connection, taxo: "Taxonomie",
@@ -279,15 +296,53 @@ def construire_taxonomie(conn: sqlite3.Connection, taxo: "Taxonomie",
     return stats
 
 
+def construire_fiche_competence(conn: sqlite3.Connection, taxo: "Taxonomie") -> dict:
+    """Crée fiche_competence_canonique et rattache chaque fiche listée.
+
+    Chemin « par fiche » : pour les certifications sans bloc dans la source,
+    on rattache la fiche entière à des compétences canoniques (issues du texte
+    libre, décidées hors ligne par la passe de curation). La table est TOUJOURS
+    créée, même vide, pour que la vue certification_competence puisse l'unir
+    sans condition. Renvoie des stats.
+    """
+    conn.execute("DROP TABLE IF EXISTS fiche_competence_canonique")
+    conn.execute(
+        "CREATE TABLE fiche_competence_canonique ("
+        "numero_fiche TEXT, competence_id TEXT, methode TEXT, "
+        "PRIMARY KEY (numero_fiche, competence_id))")
+    conn.executemany(
+        "INSERT OR IGNORE INTO fiche_competence_canonique "
+        "(numero_fiche, competence_id, methode) VALUES (?, ?, ?)",
+        taxo.fiche_mapping)
+    # Compteurs sur les lignes réellement insérées (l'artefact est supposé
+    # déjà borné au périmètre ; on ne refiltre pas ici sur standard/actif).
+    nb_rattachements = conn.execute(
+        "SELECT COUNT(*) FROM fiche_competence_canonique").fetchone()[0]
+    nb_fiches = conn.execute(
+        "SELECT COUNT(DISTINCT numero_fiche) FROM fiche_competence_canonique").fetchone()[0]
+    conn.commit()
+    return {"nb_rattachements_fiche": nb_rattachements,
+            "nb_fiches_rattachees": nb_fiches}
+
+
 def creer_vue_certification_competence(conn: sqlite3.Connection) -> None:
-    """Vue diplôme -> compétences canoniques couvertes (blocs non classés exclus)."""
+    """Vue diplôme -> compétences canoniques couvertes.
+
+    UNION de deux chemins : les blocs mappés (blocs non classés exclus) et le
+    rattachement par fiche (certifications sans bloc dans la source). Le UNION
+    (et non UNION ALL) dédoublonne une fiche couverte par les deux chemins.
+    """
     conn.execute("DROP VIEW IF EXISTS certification_competence")
     conn.execute(
         "CREATE VIEW certification_competence AS "
         "SELECT DISTINCT b.numero_fiche, m.competence_id, cc.domaine_id "
         "FROM bloc_competences_xml b "
         "JOIN bloc_competence_canonique m ON m.bloc_code = b.bloc_code "
-        "JOIN competence_canonique cc ON cc.competence_id = m.competence_id")
+        "JOIN competence_canonique cc ON cc.competence_id = m.competence_id "
+        "UNION "
+        "SELECT DISTINCT f.numero_fiche, f.competence_id, cc.domaine_id "
+        "FROM fiche_competence_canonique f "
+        "JOIN competence_canonique cc ON cc.competence_id = f.competence_id")
     conn.commit()
 
 
@@ -299,6 +354,12 @@ def indexer_taxonomie(conn: sqlite3.Connection) -> None:
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_bcc_competence "
         "ON bloc_competence_canonique (competence_id)")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_fcc_numero "
+        "ON fiche_competence_canonique (numero_fiche)")
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_fcc_competence "
+        "ON fiche_competence_canonique (competence_id)")
     conn.commit()
 
 
@@ -744,6 +805,7 @@ def main() -> None:
 
     taxo = None
     taxo_stats: dict = {}
+    fiche_stats: dict = {}
     if not args.no_taxonomie:
         taxo = charger_taxonomie(args.taxonomie_dir)
         if taxo is None:
@@ -751,11 +813,14 @@ def main() -> None:
     if taxo is not None:
         log("\nConstruction de la taxonomie de compétences…")
         taxo_stats = construire_taxonomie(conn, taxo)
+        fiche_stats = construire_fiche_competence(conn, taxo)
         creer_vue_certification_competence(conn)
         indexer_taxonomie(conn)
         log(f"  couverture : ia {taxo_stats['blocs_ia_pct']}% · "
             f"lexical {taxo_stats['blocs_lexical_pct']}% · "
             f"non classé {taxo_stats['blocs_non_classe_pct']}%")
+        log(f"  rattachement par fiche : {fiche_stats['nb_fiches_rattachees']} fiches "
+            f"({fiche_stats['nb_rattachements_fiche']} rattachements)")
 
     meta_entries = {
         "source": DATASET_API,
@@ -773,6 +838,7 @@ def main() -> None:
             "blocs_ia_pct": str(taxo_stats["blocs_ia_pct"]),
             "blocs_lexical_pct": str(taxo_stats["blocs_lexical_pct"]),
             "blocs_non_classe_pct": str(taxo_stats["blocs_non_classe_pct"]),
+            "nb_fiches_rattachees": str(fiche_stats.get("nb_fiches_rattachees", 0)),
         })
         for cle in ("version", "date", "modele"):
             if cle in taxo.meta:

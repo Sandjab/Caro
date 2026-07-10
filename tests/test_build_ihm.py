@@ -216,6 +216,62 @@ class TestIndex(unittest.TestCase):
         self.assertIn("RNCP0001", msg)
 
 
+class TestFicheRattacheeParFiche(unittest.TestCase):
+    """Non-régression : une fiche VAE sans bloc de compétences mais rattachée
+    par le chemin « fiche » (table fiche_competence_canonique, désormais unie
+    dans la vue certification_competence — voir creer_vue_certification_competence
+    dans build_db.py) doit être retenue par construire_index(), comme n'importe
+    quelle autre fiche couverte. construire_index() ne lit que la vue
+    certification_competence et ignore l'origine du rattachement : ce test
+    prouve que build_ihm.py n'a besoin d'aucune modification pour ce cas."""
+
+    def test_fiche_sans_bloc_rattachee_par_fiche_est_retenue(self):
+        conn = conn_minimale()
+        self.addCleanup(conn.close)
+
+        # RS0009 : fiche VAE sans aucun bloc_competences_xml (donc aucune
+        # entrée possible par le chemin « bloc »). Seul le chemin « fiche »
+        # peut la rattacher à une compétence.
+        conn.executemany("INSERT INTO voixdacces VALUES (?,?)", [
+            ("RS0009", "Par expérience"),
+        ])
+        conn.executemany("INSERT INTO standard VALUES (?,?,?)", [
+            ("RS0009", "Fiche RS sans bloc", "NIV5"),
+        ])
+        conn.executemany("INSERT INTO nsf VALUES (?,?,?)", [
+            ("RS0009", "310", "310 : Spécialités plurivalentes"),
+        ])
+
+        # La vue certification_competence de ce montage est une table figée
+        # (UNION ALL de valeurs littérales, cf. conn_minimale) : on y ajoute
+        # la ligne que produirait la vraie vue en UNION une fois
+        # fiche_competence_canonique('RS0009', 'oral', ...) chargée — sans
+        # dépendre de la table bloc_competence_canonique, absente d'ici.
+        conn.executescript("""
+            DROP VIEW certification_competence;
+            CREATE VIEW certification_competence AS
+                SELECT 'RNCP0001' AS numero_fiche, 'site_web' AS competence_id,
+                       'numerique' AS domaine_id
+                UNION ALL SELECT 'RNCP0001', 'oral', 'transversal'
+                UNION ALL SELECT 'RNCP0004', 'site_web', 'numerique'
+                UNION ALL SELECT 'RS0009', 'oral', 'transversal';
+        """)
+        conn.commit()
+
+        index, exclues = build_ihm.construire_index(
+            conn, build_ihm.numeros_vae(conn))
+        retenus = {c[0] for c in index["certifs"]}
+        sans = {c[0] for c in index["sans_comp"]}
+        self.assertIn("RS0009", retenus)
+        self.assertNotIn("RS0009", sans)
+        # Non-régression additionnelle : les fiches déjà couvertes par blocs
+        # restent retenues, et le décompte des non-positionnables (RNCP0002
+        # seule) n'a pas bougé.
+        self.assertIn("RNCP0001", retenus)
+        self.assertIn("RNCP0004", retenus)
+        self.assertEqual(exclues, 1)
+
+
 def _conn_grande_echelle(n_fiches: int) -> sqlite3.Connection:
     """Base en mémoire avec `n_fiches` fiches VAE, pour tester le passage à
     l'échelle sans clause IN variadique (5 582 fiches en production)."""
