@@ -151,11 +151,12 @@ def meilleur_match_lexical(
 class Taxonomie:
     """Artefact de taxonomie chargé depuis taxonomie/*.csv."""
 
-    def __init__(self, domaines, competences, mapping, meta):
+    def __init__(self, domaines, competences, mapping, meta, fiche_mapping=None):
         self.domaines = domaines        # list[dict]
         self.competences = competences  # list[dict]
         self.mapping = mapping          # dict[str, tuple[str, str, float | None]]
         self.meta = meta                # dict[str, str]
+        self.fiche_mapping = fiche_mapping or []  # list[tuple[str, str, str]]
 
 
 def _lire_csv_point_virgule(chemin: Path) -> "list[dict]":
@@ -197,6 +198,22 @@ def charger_taxonomie(taxo_dir: Path) -> "Taxonomie | None":
             score = None
         mapping[code] = (cid, row.get("methode", "ia") or "ia", score)
 
+    # Rattachement par fiche (optionnel) : pour les certifications sans bloc
+    # dans la source, qui ne peuvent pas passer par mapping_blocs.
+    fiche_mapping: "list[tuple[str, str, str]]" = []
+    chemin_fiches = taxo_dir / "mapping_fiches.csv"
+    if chemin_fiches.exists():
+        for row in _lire_csv_point_virgule(chemin_fiches):
+            num = (row.get("numero_fiche") or "").strip()
+            cid = (row.get("competence_id") or "").strip()
+            if not num or not cid:
+                continue
+            if cid not in ids_connus:
+                log(f"  taxonomie : rattachement fiche ignoré "
+                    f"(competence inconnue) : {num} -> {cid}")
+                continue
+            fiche_mapping.append((num, cid, (row.get("methode") or "ia") or "ia"))
+
     meta = {}
     meta_path = taxo_dir / "meta.json"
     if meta_path.exists():
@@ -205,7 +222,7 @@ def charger_taxonomie(taxo_dir: Path) -> "Taxonomie | None":
         except (ValueError, OSError) as exc:
             log(f"  taxonomie : meta.json illisible ({exc})")
 
-    return Taxonomie(domaines, competences, mapping, meta)
+    return Taxonomie(domaines, competences, mapping, meta, fiche_mapping)
 
 
 def construire_taxonomie(conn: sqlite3.Connection, taxo: "Taxonomie",
