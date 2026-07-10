@@ -212,7 +212,7 @@ def charger_taxonomie(taxo_dir: Path) -> "Taxonomie | None":
                 log(f"  taxonomie : rattachement fiche ignoré "
                     f"(competence inconnue) : {num} -> {cid}")
                 continue
-            fiche_mapping.append((num, cid, (row.get("methode") or "ia") or "ia"))
+            fiche_mapping.append((num, cid, row.get("methode", "ia") or "ia"))
 
     meta = {}
     meta_path = taxo_dir / "meta.json"
@@ -314,6 +314,8 @@ def construire_fiche_competence(conn: sqlite3.Connection, taxo: "Taxonomie") -> 
         "INSERT OR IGNORE INTO fiche_competence_canonique "
         "(numero_fiche, competence_id, methode) VALUES (?, ?, ?)",
         taxo.fiche_mapping)
+    # Compteurs sur les lignes réellement insérées (l'artefact est supposé
+    # déjà borné au périmètre ; on ne refiltre pas ici sur standard/actif).
     nb_rattachements = conn.execute(
         "SELECT COUNT(*) FROM fiche_competence_canonique").fetchone()[0]
     nb_fiches = conn.execute(

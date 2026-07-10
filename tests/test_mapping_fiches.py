@@ -48,6 +48,17 @@ class TestChargerMappingFiches(unittest.TestCase):
             sorted(taxo.fiche_mapping),
             [("RNCP0003", "site_web", "humain"), ("RS0009", "site_web", "ia")])
 
+    def test_ligne_champ_vide_ignoree(self):
+        ecrire_taxo(self.d, avec_fiches=False)
+        (self.d / "mapping_fiches.csv").write_text(
+            "numero_fiche;competence_id;methode\n"
+            ";site_web;ia\n"                # numero_fiche vide -> ignorée
+            "RS0009;;ia\n"                  # competence_id vide -> ignorée
+            "RS0010;site_web;ia\n",         # valide
+            encoding="utf-8")
+        taxo = build_db.charger_taxonomie(self.d)
+        self.assertEqual(taxo.fiche_mapping, [("RS0010", "site_web", "ia")])
+
 
 def taxo_avec_fiches():
     domaines = [{"domaine_id": "numerique", "libelle": "Numérique",
