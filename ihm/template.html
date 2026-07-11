@@ -110,6 +110,25 @@ h1, h2, h3 { font-family: "Spectral", Georgia, serif; letter-spacing: -0.01em; }
 body { display: flex; flex-direction: column; height: 100vh; }
 main { flex: 1; display: flex; min-height: 0; }
 
+/* Entrée en scène au chargement : en-tête, arbre, puis résultats.
+   opacity + translateY seulement (jamais width/height). Coupée pour qui
+   a demandé moins d'animations. */
+@keyframes caro-apparition {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+.caro-header, #arbre, #droite {
+  animation: caro-apparition .45s cubic-bezier(.22, 1, .36, 1) both;
+}
+#arbre  { animation-delay: .06s; }
+#droite { animation-delay: .12s; }
+@media (prefers-reduced-motion: reduce) {
+  .caro-header, #arbre, #droite { animation: none; }
+}
+
+/* Amorçage de l'arbre : sans lui, 33 domaines repliés sans point d'entrée. */
+#guide-arbre { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; line-height: 1.4; }
+
 /* --- Colonne gauche : arbre des compétences ------------------ */
 #arbre {
   width: 348px; flex-shrink: 0;
@@ -261,8 +280,17 @@ main { flex: 1; display: flex; min-height: 0; }
 }
 
 /* --- Panneau de fiche ---------------------------------------- */
+/* Voile derrière le panneau ouvert : un clic dessus ferme la fiche
+   (comme Échap). Sous le panneau, au-dessus du reste. */
+#scrim {
+  position: fixed; inset: 0; z-index: 10;
+  background: rgba(27, 26, 23, .28);
+  opacity: 0; pointer-events: none;
+  transition: opacity .18s ease;
+}
+#scrim.visible { opacity: 1; pointer-events: auto; }
 #panneau {
-  position: fixed; top: 0; right: 0;
+  position: fixed; top: 0; right: 0; z-index: 11;
   width: min(560px, 92vw); height: 100vh;
   background: var(--surface);
   border-left: 1px solid var(--line);
@@ -281,11 +309,18 @@ main { flex: 1; display: flex; min-height: 0; }
 #panneau .bloc strong { display: block; font-size: 13.5px; color: var(--ink); margin-bottom: 5px; }
 #panneau .bloc p { color: var(--muted); font-size: 13px; }
 #panneau mark { background: var(--mark); border-radius: 2px; padding: 0 1px; }
+/* Sticky : reste en haut à droite quand on fait défiler une longue fiche,
+   pas besoin de remonter pour la fermer. Sur sa propre ligne (pas de float,
+   peu fiable avec sticky), aligné à droite. Fond opaque pour masquer le texte
+   qui défile dessous. */
 #fermer {
-  float: right; font-size: 22px; line-height: 1;
-  background: none; border: none; color: var(--faint); cursor: pointer;
+  position: sticky; top: 0; z-index: 2;
+  display: grid; place-items: center;
+  width: 2.5rem; height: 2.5rem; margin: -6px -6px 6px auto;
+  font-size: 24px; line-height: 1; border-radius: 8px;
+  background: var(--surface); border: none; color: var(--faint); cursor: pointer;
 }
-#fermer:hover { color: var(--ink); }
+#fermer:hover { color: var(--ink); background: var(--line-soft); }
 
 /* --- Responsive ---------------------------------------------- */
 @media (max-width: 768px) {
@@ -307,7 +342,8 @@ main { flex: 1; display: flex; min-height: 0; }
 </header>
 <main>
   <aside id="arbre">
-    <input id="recherche" type="search" placeholder="filtrer l'arbre…" aria-label="Filtrer les compétences">
+    <p id="guide-arbre">Ouvrez un domaine et cochez ce que vous savez faire.</p>
+    <input id="recherche" type="search" placeholder="rechercher une compétence…" aria-label="Rechercher une compétence">
     <div id="metiers"></div>
     <div id="transversales"></div>
     <p id="compteur"></p>
@@ -327,6 +363,7 @@ main { flex: 1; display: flex; min-height: 0; }
       <div id="nonposListe"></div>
     </details>
   </section>
+  <div id="scrim"></div>
   <aside id="panneau" aria-hidden="true" inert>
     <button id="fermer" type="button" aria-label="Fermer">×</button>
     <div id="fiche"></div>
@@ -492,14 +529,23 @@ function rendre() {
   // anticipés « aucune coche » / « aucun résultat » ci-dessous).
   if (document.getElementById("nonpos").open) rendreNonPos();
   const res = matcher(DATA, coches, filtres);
-  document.getElementById("titre").textContent =
-    res.length + " certification" + (res.length > 1 ? "s" : "") +
-    " accessible" + (res.length > 1 ? "s" : "") + " par VAE";
+  // À l'accueil (rien de coché), le titre annonce le périmètre total plutôt
+  // qu'un « 0 » alarmant ; une fois des compétences cochées, il donne le
+  // nombre de certifications que le profil couvre.
+  const titre = document.getElementById("titre");
+  if (coches.size === 0) {
+    const n = DATA.certifs.length;
+    titre.textContent = n.toLocaleString("fr-FR") + " certification" +
+      (n > 1 ? "s" : "") + " accessible" + (n > 1 ? "s" : "") + " par VAE";
+  } else {
+    titre.textContent = res.length.toLocaleString("fr-FR") + " certification" +
+      (res.length > 1 ? "s" : "") + " à votre portée";
+  }
 
   const zone = document.getElementById("resultats");
   if (coches.size === 0) {
     zone.innerHTML = '<p class="vide">Cochez vos compétences à gauche pour ' +
-      'découvrir les certifications que vous pouvez viser par VAE.</p>';
+      'filtrer ces certifications selon votre expérience.</p>';
     return;
   }
   if (res.length === 0) {
@@ -510,7 +556,7 @@ function rendre() {
   zone.innerHTML = res.slice(0, 200).map(r => {
     const c = r.certif;
     const nsf = c[3].map(i => DATA.nsf[i][1]).join(", ") || "—";
-    const niv = c[2] || "niveau non renseigné";
+    const niv = libelleNiveau(c[2]);
     return `<article class="carte">
       <h3><span class="taux">${Math.round(r.couverture * 100)} %</span>${esc(c[1])}</h3>
       <div class="barre">métier ${jauge(r.metier[0], r.metier[1])}</div>
@@ -538,7 +584,7 @@ function carteNonPos(c) {
   const meta = document.createElement("p");
   meta.className = "meta";
   const nsf = c[3].map(i => DATA.nsf[i][1]).join(", ") || "—";
-  meta.append((c[2] || "niveau non renseigné") + " · " + nsf + " · ");
+  meta.append(libelleNiveau(c[2]) + " · " + nsf + " · ");
   const btn = document.createElement("button");
   btn.type = "button";
   btn.className = "voir";   // .meta .voir : même style que les cartes classées
@@ -576,6 +622,23 @@ function esc(s) {
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 }
 
+// Traduit le code de la nomenclature (NIV3…NIV8) en libellé lisible. Le public
+// de la VAE ne sait pas que « NIV5 » = bac+2 ; le code seul est une barrière.
+// Correspondances : cadre national des certifications 2019.
+const NIVEAUX = {
+  NIV1: "Niveau 1", NIV2: "Niveau 2",
+  NIV3: "Niveau 3 · CAP, BEP",
+  NIV4: "Niveau 4 · Bac",
+  NIV5: "Niveau 5 · Bac+2",
+  NIV6: "Niveau 6 · Bac+3/4",
+  NIV7: "Niveau 7 · Bac+5",
+  NIV8: "Niveau 8 · Bac+8",
+};
+function libelleNiveau(code) {
+  if (!code) return "niveau non renseigné";
+  return NIVEAUX[code] || code;  // code inconnu : montré tel quel plutôt que masqué
+}
+
 // Le préfixe du numéro décide du répertoire sur le site officiel : RS5367 et
 // RNCP5367 sont deux certifications différentes, /recherche/rs/ ou /rncp/.
 function lienOfficiel(numero) {
@@ -587,7 +650,7 @@ function lienOfficiel(numero) {
 // --- filtres ---
 function construireFiltres() {
   const niveaux = [...new Set(DATA.certifs.map(c => c[2]))].sort();
-  const opt = v => `<option value="${esc(v)}">${esc(v) || "niveau non renseigné"}</option>`;
+  const opt = v => `<option value="${esc(v)}">${esc(libelleNiveau(v))}</option>`;
   document.getElementById("filtres").innerHTML = `
     <label>Niveau <select id="fNiv" multiple size="3">${niveaux.map(opt).join("")}</select></label>
     <label>Domaine <select id="fNsf" multiple size="3">${
@@ -626,13 +689,18 @@ function synchroniserFiltres() {
 }
 
 // --- panneau de fiche ---
+// Trois façons de fermer une fiche : la croix (sticky, toujours visible), la
+// touche Échap, ou un clic sur le voile — on n'est jamais forcé de remonter.
 const panneau = document.getElementById("panneau");
+const scrim = document.getElementById("scrim");
 document.getElementById("fermer").addEventListener("click", fermerFiche);
+scrim.addEventListener("click", fermerFiche);
 document.addEventListener("keydown", e => { if (e.key === "Escape") fermerFiche(); });
 
 function fermerFiche() {
   if (!panneau.classList.contains("ouvert")) return; // déjà fermé : idempotent
   panneau.classList.remove("ouvert");
+  scrim.classList.remove("visible");
   panneau.setAttribute("aria-hidden", "true");
   panneau.inert = true;
   if (declencheurFiche && declencheurFiche.isConnected) declencheurFiche.focus();
@@ -655,6 +723,7 @@ async function ouvrirFiche(numero, declencheur) {
   declencheurFiche = declencheur || document.activeElement;
   panneau.inert = false;
   panneau.classList.add("ouvert");
+  scrim.classList.add("visible");
   panneau.setAttribute("aria-hidden", "false");
   document.getElementById("fermer").focus();
 
@@ -691,7 +760,7 @@ async function ouvrirFiche(numero, declencheur) {
   }
   const mots = [...coches].map(i => DATA.competences[i][1]);
   zone.innerHTML = `<h2>${esc(c[1])}</h2>
-    <p class="meta">${esc(c[2]) || "niveau non renseigné"} ·
+    <p class="meta">${esc(libelleNiveau(c[2]))} ·
       ${c[3].map(i => esc(DATA.nsf[i][1])).join(", ")} ·
       <a href="${lien}" target="_blank" rel="noopener">fiche officielle</a></p>
     ${d.o ? `<h3>Objectifs et contexte</h3><p>${esc(d.o)}</p>` : ""}
